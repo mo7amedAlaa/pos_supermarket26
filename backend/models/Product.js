@@ -9,7 +9,7 @@ const batchSchema = new mongoose.Schema(
     receivedAt: { type: Date, default: Date.now },
     note: { type: String, default: "" },
   },
-  { _id: true }
+  { _id: true },
 );
 
 const productSchema = new mongoose.Schema(
@@ -63,7 +63,7 @@ const productSchema = new mongoose.Schema(
 
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 productSchema.index({ name: "text", barcode: "text" });
@@ -82,7 +82,7 @@ productSchema.index(
     unique: true,
     partialFilterExpression: { barcode: { $type: "string", $gt: "" } },
     name: "barcode_unique_nonempty",
-  }
+  },
 );
 productSchema.index(
   { scaleItemCode: 1 },
@@ -90,7 +90,7 @@ productSchema.index(
     unique: true,
     partialFilterExpression: { scaleItemCode: { $type: "string", $gt: "" } },
     name: "scaleItemCode_unique_nonempty",
-  }
+  },
 );
 
 // حماية إضافية على مستوى التطبيق: أي "" أو مسافات فاضية تتحول لـ undefined
@@ -109,9 +109,14 @@ productSchema.pre("validate", function (next) {
 
 // أقرب تاريخ صلاحية بين الدفعات اللي لسه فيها كمية
 productSchema.virtual("nearestExpiry").get(function () {
-  const dated = (this.batches || []).filter((b) => b.quantity > 0 && b.expiryDate);
+  const dated = (this.batches || []).filter(
+    (b) => b.quantity > 0 && b.expiryDate,
+  );
   if (dated.length === 0) return null;
-  return dated.reduce((min, b) => (b.expiryDate < min ? b.expiryDate : min), dated[0].expiryDate);
+  return dated.reduce(
+    (min, b) => (b.expiryDate < min ? b.expiryDate : min),
+    dated[0].expiryDate,
+  );
 });
 
 productSchema.set("toJSON", { virtuals: true });
@@ -132,29 +137,59 @@ productSchema.methods.deductQuantity = function (amount) {
   let remaining = amount;
   let cost = 0;
 
-  if (this.trackExpiry && this.batches?.length) {
-    const sorted = [...this.batches]
-      .filter((b) => b.quantity > 0)
-      .sort((a, b) => {
-        if (!a.expiryDate) return 1;
-        if (!b.expiryDate) return -1;
-        return a.expiryDate - b.expiryDate;
-      });
+  const batches = (this.batches || [])
+    .filter((b) => b.quantity > 0)
+    .sort((a, b) => {
+      if (!a.expiryDate && !b.expiryDate) {
+        return new Date(a.receivedAt) - new Date(b.receivedAt);
+      }
 
-    for (const batch of sorted) {
+      if (!a.expiryDate) return 1;
+      if (!b.expiryDate) return -1;
+
+      return new Date(a.expiryDate) - new Date(b.expiryDate);
+    });
+
+  if (batches.length > 0) {
+    for (const batch of batches) {
       if (remaining <= 0) break;
+
       const take = Math.min(batch.quantity, remaining);
+
       batch.quantity -= take;
       remaining -= take;
+
       cost += take * batch.purchasePrice;
     }
-    this.recalcQuantityFromBatches();
+
+    if (remaining > 0) {
+      return {
+        cost: 0,
+        shortfall: remaining,
+      };
+    }
+
+    if (this.trackExpiry) {
+      this.recalcQuantityFromBatches();
+    } else {
+      this.quantity -= amount;
+    }
   } else {
+    if (this.quantity < amount) {
+      return {
+        cost: 0,
+        shortfall: amount - this.quantity,
+      };
+    }
+
     this.quantity -= amount;
     cost = amount * this.purchasePrice;
   }
 
-  return { cost, shortfall: remaining };
+  return {
+    cost,
+    shortfall: 0,
+  };
 };
 
 module.exports = mongoose.model("Product", productSchema);
