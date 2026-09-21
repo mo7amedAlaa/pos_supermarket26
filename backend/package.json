@@ -8,6 +8,9 @@
     "dev": "nodemon server.js",
     "fix-indexes": "node scripts/fixProductIndexes.js"
   },
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
