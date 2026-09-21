@@ -1,13 +1,3 @@
-const app = require("../server");
-const connectDB = require("../config/db");
+const { app } = require("../server");
 
-let initialized = false;
-
-module.exports = async (req, res) => {
-  if (!initialized) {
-    await connectDB();
-    initialized = true;
-  }
-
-  return app(req, res);
-};
+module.exports = app;
