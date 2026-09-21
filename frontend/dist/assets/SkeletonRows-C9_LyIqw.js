@@ -1,0 +1,1 @@
+import{l as e}from"./index-DPITNhPU.js";function m({columns:r,rows:a=5}){return e.jsx(e.Fragment,{children:Array.from({length:a}).map((n,s)=>e.jsx("tr",{className:"skeleton-row",children:Array.from({length:r}).map((l,t)=>e.jsx("td",{children:e.jsx("div",{className:"skeleton-bar",style:{animationDelay:`${(s*r+t)*.03}s`}})},t))},s))})}export{m as S};

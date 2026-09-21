@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   متغيرات تصميم إضافية (لحاجات Tailwind مش بتغطيها مباشرة: التدرجات، الحركات)
+   ============================================================================= */
+:root {
+  --gray-50: #f8fafc;  --gray-100: #f1f5f9; --gray-200: #e2e8f0; --gray-300: #cbd5e1;
+  --gray-400: #94a3b8; --gray-500: #64748b; --gray-600: #475569; --gray-700: #334155;
+  --gray-800: #1e293b; --gray-900: #0f172a;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-slate-50 text-slate-800 font-sans; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { @apply font-bold text-slate-900; }
+  h2 { @apply text-xl; }
+  h3 { @apply text-base; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    @apply outline outline-2 outline-primary outline-offset-2;
+  }
+  input:focus, select:focus { @apply border-primary ring-4 ring-primary/15 outline-none; }
+  input:disabled, select:disabled { @apply bg-slate-100 text-slate-400 cursor-not-allowed; }
+
+  /* يحترم تفضيل تقليل الحركة (إمكانية وصول) */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+}
+
+@layer components {
+  /* ---- صفحة تسجيل الدخول ---- */
+  .login-page { @apply h-screen flex items-center justify-center p-5;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%); }
+  .login-card { @apply bg-white p-9 rounded-lg shadow-lg w-full max-w-[340px]; }
+  .login-icon { @apply w-14 h-14 rounded-2xl bg-primary-light text-primary flex items-center justify-center mx-auto mb-4; }
+  .login-card h1 { @apply text-xl text-center m-0; }
+  .login-card .subtitle { @apply text-center text-slate-500 mt-1 mb-5 text-sm; }
+  .login-card label { @apply block mt-3.5 mb-1.5 text-[13px] font-semibold text-slate-600; }
+  .login-card .btn { @apply mt-5; }
+
+  .input-with-icon { @apply relative flex items-center; }
+  .input-with-icon .input-icon { @apply absolute right-3 text-slate-400 pointer-events-none; }
+  .input-with-icon input { @apply w-full !pr-10 !pl-3.5 py-2.5; }
+  .input-icon-toggle { @apply absolute left-2.5 bg-transparent border-none text-slate-400 cursor-pointer p-1 flex; }
+  .input-icon-toggle:hover { @apply text-slate-600; }
+
+  /* ---- تخطيط عام ---- */
+  .app-shell { @apply flex flex-col md:flex-row min-h-screen; }
+  .sidebar { @apply w-full md:w-[250px] md:shrink-0 bg-slate-900 text-white
+    flex flex-row md:flex-col flex-wrap md:flex-nowrap items-center md:items-stretch
+    p-3 md:p-5 gap-2 md:gap-0; }
+  .sidebar-title { @apply flex items-center gap-2.5 text-base font-bold mb-0 md:mb-7 px-2 text-white; }
+  .sidebar nav { @apply flex flex-row md:flex-col flex-wrap gap-[3px] flex-initial md:flex-1; }
+  .nav-link { @apply text-slate-400 no-underline py-2.5 px-3 rounded-sm flex items-center gap-2.5 text-sm font-medium relative; }
+  .nav-link:hover { @apply bg-white/[0.06] text-white; }
+  .nav-link.active { @apply bg-primary/[0.15] text-white font-semibold; }
+  .nav-link.active::before { content: ""; @apply hidden md:block absolute right-0 top-2 bottom-2 w-[3px] bg-primary rounded-sm; }
+  .nav-link-accent { @apply mt-0 md:mt-2.5 bg-primary/[0.12] text-blue-300; }
+  .nav-link-accent:hover { @apply bg-primary/[0.22] text-white; }
+
+  .sidebar-footer { @apply border-t-0 md:border-t border-white/10 pt-0 md:pt-4 mt-0 md:mt-3; }
+  .sidebar-user { @apply hidden md:flex items-center gap-2.5 mb-3 text-sm text-slate-300; }
+  .avatar-circle { @apply w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0; }
+  .sidebar-footer .btn-secondary { @apply bg-white/[0.08] text-white; }
+  .sidebar-footer .btn-secondary:hover { @apply bg-white/[0.15]; }
+
+  .main-content { @apply flex-1 p-5 md:p-8 overflow-x-auto; scrollbar-width: thin; }
+  .main-content::-webkit-scrollbar { height: 8px; width: 8px; }
+  .main-content::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded; }
+
+  /* ---- أزرار ---- */
+  .btn { @apply border-none rounded-sm px-[18px] py-2.5 text-sm font-semibold cursor-pointer inline-flex items-center justify-center gap-[7px] font-sans whitespace-nowrap; }
+  .btn-primary { @apply bg-primary text-white shadow-xs; }
+  .btn-primary:hover:not(:disabled) { @apply bg-primary-dark shadow-sm; }
+  .btn-primary:active:not(:disabled) { @apply scale-[0.97]; }
+  .btn-primary:disabled { @apply bg-blue-300 cursor-not-allowed; }
+  .btn-secondary { @apply bg-slate-100 text-slate-700; }
+  .btn-secondary:hover:not(:disabled) { @apply bg-slate-200; }
+  .btn-secondary:active:not(:disabled) { @apply scale-[0.97]; }
+  .btn-secondary:disabled { @apply opacity-60 cursor-not-allowed; }
+  .btn-danger { @apply bg-danger text-white; }
+  .btn-danger:hover:not(:disabled) { @apply bg-danger-dark; }
+  .btn-block { @apply w-full; }
+  .btn-xs { @apply px-2.5 py-1.5 text-xs flex-1; }
+  .btn-link { @apply bg-transparent border-none text-primary cursor-pointer py-[5px] px-[9px] text-[13px] rounded-sm inline-flex items-center gap-[5px] font-sans font-medium; }
+  .btn-link:hover { @apply bg-primary-light; }
+  .btn-link-danger { @apply text-danger; }
+  .btn-link-danger:hover { @apply bg-danger-light; }
+  .btn-icon-only { @apply bg-transparent border-none text-slate-400 cursor-pointer p-1.5 rounded-sm flex; }
+  .btn-icon-only:hover { @apply bg-slate-100 text-slate-700; }
+
+  /* ---- عناوين، أدوات، تنبيهات ---- */
+  .page-header { @apply flex justify-between items-center mb-4 gap-3 flex-wrap; }
+  .page-header h2, .page-header h3 { @apply flex items-center gap-2.5 m-0; }
+  .page-header-icon { @apply text-primary; }
+  .toolbar { @apply flex gap-4 items-center mb-4 flex-wrap; }
+  .toolbar-search { @apply w-full sm:w-[300px]; }
+  .toolbar input[type="text"] { @apply py-2.5 px-3 border border-slate-200 rounded-sm w-full; }
+  .checkbox-label { @apply flex items-center gap-[7px] text-sm text-slate-600 cursor-pointer; }
+  .checkbox-label input { @apply cursor-pointer; }
+  .inline-form { @apply flex gap-2 mb-4 flex-wrap sm:flex-nowrap; }
+  .inline-form input { @apply flex-1 min-w-[140px] py-2.5 px-3 border border-slate-200 rounded-sm; }
+  .inline-select { @apply mr-2 py-1.5 px-2.5 border border-slate-200 rounded-sm font-sans; }
+  .muted { @apply text-slate-500; }
+  .small { @apply text-xs; }
+  .mono { font-family: "JetBrains Mono", "Courier New", monospace; letter-spacing: 0.3px; }
+  .alert { @apply py-2.5 px-3.5 rounded-sm mb-3.5 text-sm flex items-center gap-2; }
+  .alert-error { @apply bg-danger-light text-danger-dark border border-red-200; }
+
+  /* ---- جداول ---- */
+  .table { @apply w-full border-collapse bg-white rounded-md overflow-hidden shadow-sm; }
+  .table th, .table td { @apply py-3 px-3.5 text-right border-b border-slate-100 text-sm; }
+  .table th { @apply bg-slate-50 font-bold text-slate-600 text-[13px]; }
+  .table tbody tr:hover td { @apply bg-slate-50; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+  .row-low-stock { @apply bg-warning-light; }
+  .row-low-stock:hover td { background: #fef3c7 !important; }
+  .row-expired { @apply bg-danger-light; }
+  .actions-cell { @apply flex gap-0.5 flex-wrap; }
+
+  .skeleton-row td { @apply p-3.5; }
+  .skeleton-bar { height: 14px; @apply rounded w-full;
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+
+  .empty-state, .error-state { @apply flex flex-col items-center justify-center py-12 px-5 text-center bg-white rounded-md shadow-sm; }
+  .empty-state-icon { @apply w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3.5; }
+  .empty-state-title { @apply text-[15px] font-bold text-slate-700; }
+  .empty-state-subtitle { @apply text-[13px] text-slate-500 mt-1; }
+  .empty-state-action { @apply mt-4; }
+  .error-state { @apply text-danger; }
+  .error-state-message { @apply text-sm text-slate-600 my-2.5 mb-4; }
+
+  /* ---- بطاقات إحصائيات ---- */
+  .stats-grid { @apply grid gap-4 mb-6; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 640px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); } }
+  .stats-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+  .stat-card { @apply bg-white p-5 rounded-md shadow-sm relative overflow-hidden; }
+  .stat-card:hover { @apply -translate-y-0.5 shadow-md; }
+  .stat-icon { @apply text-slate-300 mb-2.5; }
+  .stat-value { @apply text-2xl font-extrabold text-slate-900 leading-tight; }
+  .stat-label { @apply text-slate-500 text-[13px] mt-1; }
+  .stat-success .stat-icon, .stat-success .stat-value { @apply text-success; }
+  .stat-warning .stat-icon, .stat-warning .stat-value { @apply text-warning; }
+  .stat-danger .stat-icon, .stat-danger .stat-value { @apply text-danger; }
+  .profit-cell { @apply text-success font-bold; }
+  .live-badge { @apply text-xs text-success font-semibold inline-flex items-center gap-1.5; }
+  .live-dot { @apply w-[7px] h-[7px] rounded-full bg-success; animation: pulse 1.6s ease-in-out infinite; }
+
+  /* ---- نماذج ---- */
+  .card-form { @apply bg-white p-5 rounded-md mb-5 max-w-[620px] shadow-sm; }
+  .card-form label, .modal-card label { @apply block mt-3 mb-1.5 text-[13px] font-semibold text-slate-600; }
+  .card-form input, .card-form select, .modal-card input, .modal-card select {
+    @apply w-full py-2.5 px-3 border border-slate-200 rounded-sm text-sm font-sans; }
+  .form-row { @apply flex flex-col sm:flex-row gap-4; }
+  .form-row > div { @apply flex-1; }
+  .barcode-row { @apply flex gap-2 items-stretch flex-wrap sm:flex-nowrap; }
+  .barcode-row input { @apply flex-1 min-w-[160px]; }
+
+  /* ---- Modal: مركزي دايمًا، عرض متجاوب مع الشاشات الصغيرة (مش عرض ثابت
+     بيلزق في الحواف زي ما كان قبل كده) ---- */
+  .modal-overlay { @apply fixed inset-0 flex items-center justify-center p-4 z-50;
+    background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); }
+  .modal-card { @apply bg-white rounded-lg shadow-lg overflow-y-auto p-6;
+    width: min(92vw, 440px); max-height: 88vh; }
+  .modal-wide { width: min(94vw, 540px) !important; }
+  .picker-modal { width: min(95vw, 720px) !important; @apply flex flex-col; }
+  .confirm-card { width: min(90vw, 380px) !important; }
+  .label-modal { width: min(90vw, 380px) !important; @apply text-center; }
+  .modal-actions { @apply flex justify-end gap-2.5 mt-5; }
+  .switch-row { @apply mt-4 p-3 bg-slate-50 rounded-sm text-[13px]; }
+  .preview-qty { @apply bg-success-light text-success-dark py-2.5 px-3.5 rounded-sm text-sm my-2.5; }
+  .diff-positive { @apply text-success font-bold; }
+  .diff-negative { @apply text-danger font-bold; }
+  .confirm-message { @apply text-[15px] leading-relaxed m-0 mb-2 text-slate-700; }
+
+  /* ---- شارات ---- */
+  .badge { @apply inline-flex items-center gap-1 py-[3px] px-2.5 rounded-full text-[11px] font-bold me-1; }
+  .badge-weight { @apply bg-primary-50 text-primary-dark; }
+  .badge-warn { background: #fef3c7; @apply text-warning-dark; }
+  .badge-danger { @apply bg-danger-light text-danger-dark; }
+  .badge-role-admin { background: #ede9fe; color: #6d28d9; }
+  .badge-role-cashier { @apply bg-primary-50 text-primary-dark; }
+
+  /* ---- Toasts ---- */
+  .toast-container { @apply fixed bottom-5 left-5 z-[200] flex flex-col-reverse gap-2.5 max-w-[380px]; }
+  .toast { @apply py-3.5 px-3.5 rounded-md text-sm text-white shadow-lg cursor-pointer flex items-center gap-2.5; }
+  .toast-icon { @apply shrink-0; }
+  .toast-message { @apply flex-1; }
+  .toast-close { @apply shrink-0 opacity-70; }
+  .toast:hover .toast-close { @apply opacity-100; }
+  .toast-info { @apply bg-slate-800; }
+  .toast-warning { @apply bg-warning; }
+  .toast-error { @apply bg-danger; }
+
+  /* ---- شاشة الكاشير ---- */
+  .cashier-page { @apply p-6; }
+  .cashier-header { @apply flex justify-between items-center mb-5 flex-wrap gap-2.5; }
+  .cashier-header h2 { @apply m-0; }
+  .cashier-header-actions { @apply flex items-center gap-3.5; }
+  .cashier-grid { @apply grid gap-5 items-start; grid-template-columns: 1fr; }
+  @media (min-width: 1024px) { .cashier-grid { grid-template-columns: 2fr 1fr; } }
+  .cashier-scan-panel, .cashier-checkout-panel { @apply bg-white p-5 rounded-md shadow-sm; }
+  .cashier-checkout-panel { @apply lg:sticky lg:top-6; }
+  .qty-input { @apply w-[70px] py-[5px] px-[7px]; }
+  .totals-row { @apply flex justify-between py-2.5 text-sm text-slate-600; }
+  .totals-grand { @apply text-[19px] font-extrabold text-slate-900 border-t-2 border-slate-100 mt-2.5 pt-3; }
+
+  .mode-tabs { @apply flex gap-1.5 bg-slate-100 p-1 rounded-md mb-4 w-full sm:w-fit; }
+  .mode-tab { @apply flex-1 sm:flex-none py-2 px-4 rounded-sm text-sm font-semibold text-slate-500 cursor-pointer flex items-center justify-center gap-1.5 border-none bg-transparent font-sans; }
+  .mode-tab.active { @apply bg-white text-primary shadow-xs; }
+
+  /* ---- ملصق الباركود ---- */
+  .barcode-label { @apply inline-flex flex-col items-center border-[1.5px] border-dashed border-slate-300 rounded-sm py-3.5 px-5 bg-white; }
+  .barcode-label-name { @apply text-xs font-bold mb-0.5 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap; }
+  .barcode-label-price { @apply text-sm font-extrabold mt-0.5 text-primary; }
+  .label-preview { @apply flex justify-center my-4; }
+
+  /* ---- تصفح المنتجات (Picker) ---- */
+  .picker-header { @apply flex justify-between items-center mb-3.5; }
+  .picker-header h3 { @apply flex items-center gap-2 m-0; }
+  .picker-filters { @apply flex gap-2.5 mb-4 flex-col sm:flex-row; }
+  .picker-category-select { @apply py-2.5 px-3 border border-slate-200 rounded-sm font-sans min-w-[140px]; }
+  .picker-grid-wrap { @apply overflow-y-auto; max-height: 60vh; }
+  .picker-loading { @apply flex justify-center py-10; }
+  .picker-grid { @apply grid gap-3; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .picker-card { @apply relative flex flex-col items-start gap-1 bg-white border-[1.5px] border-slate-200 rounded-md p-3.5 cursor-pointer text-right font-sans;
+    min-height: 92px; }
+  .picker-card:hover { @apply border-primary shadow-sm -translate-y-px; }
+  .picker-card:focus-visible { @apply outline outline-2 outline-primary outline-offset-2; }
+  .picker-card-disabled { @apply opacity-55 cursor-not-allowed; }
+  .picker-card-disabled:hover { @apply border-slate-200 shadow-none translate-y-0; }
+  .picker-card-name { @apply text-[13px] font-bold text-slate-800 leading-snug; }
+  .picker-card-price { @apply text-sm font-extrabold text-primary; }
+  .picker-card-added { @apply border-success bg-success-light; }
+  .picker-card-check { @apply absolute inset-0 flex items-center justify-center text-white rounded-md;
+    background: rgba(5, 150, 105, 0.9); }
+  .picker-weight-entry { @apply absolute inset-0 bg-white rounded-md border-[1.5px] border-primary p-2.5 flex flex-col justify-center gap-2 cursor-default; }
+  .picker-weight-entry input { @apply w-full py-[7px] px-2.5 border border-slate-200 rounded-sm text-center font-sans; }
+  .picker-weight-actions { @apply flex gap-1.5; }
+  .picker-inline { @apply bg-white p-5 rounded-md shadow-sm mt-4; }
+
+  /* ---- Spinners ---- */
+  .inline-spinner { @apply inline-block w-[15px] h-[15px] rounded-full align-middle;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: spin 0.7s linear infinite; }
+  .btn-secondary .inline-spinner, .btn-link .inline-spinner { border-color: rgba(37,99,235,0.25); border-top-color: #2563eb; }
+  .spin-icon { @apply text-primary; animation: spin 0.9s linear infinite; }
+  .page-loader { @apply flex items-center justify-center; min-height: 60vh; }
+  .error-boundary { @apply flex flex-col items-center justify-center text-center p-5 gap-2; min-height: 100vh; }
+  .error-boundary-icon { @apply text-danger mb-1.5; }
+  .pagination { @apply flex items-center justify-center gap-4 mt-4 p-3; }
+
+  /* ---- الكاميرا ---- */
+  .camera-scanner-overlay { @apply fixed inset-0 flex items-center justify-center z-[100] p-4;
+    background: rgba(15, 23, 42, 0.75); }
+  .camera-scanner-box { @apply bg-white p-4 rounded-lg shadow-lg; width: min(90vw, 340px); }
+  .camera-scanner-box .btn { @apply w-full mt-3.5; }
+
+  /* ---- الفاتورة المطبوعة ---- */
+  .receipt { @apply mx-auto text-slate-800; width: 280px; font-family: "Courier New", monospace; font-size: 13px; }
+  .receipt-table { @apply w-full border-collapse; font-size: 12px; }
+  .receipt-table th, .receipt-table td { @apply py-[3px] px-1 text-right; }
+  .receipt-grand-total { @apply font-extrabold; font-size: 15px; }
+  .receipt-thanks { @apply text-center text-slate-500; }
+
+  /* ---- تفاصيل الفاتورة ---- */
+  .invoice-detail-meta { @apply flex flex-wrap items-center gap-4 text-sm text-slate-600 mt-2; }
+  .invoice-detail-meta span { @apply inline-flex items-center gap-1.5; }
+  .reports-invoices-link { @apply flex justify-center mt-6; }
+}
+
+/* =============================================================================
+   الحركات المُعرّفة بـ CSS الخام (Framer Motion بيتولى حركات الظهور/الاختفاء
+   للمودالز والتوستس، والقيم دي مستخدمة لحركات أبسط زي shimmer والنبض)
+   ============================================================================= */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
