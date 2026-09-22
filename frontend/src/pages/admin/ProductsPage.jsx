@@ -119,7 +119,10 @@ export default function ProductsPage() {
     isLoading: loading,
     isError: loadError,
     refetch: loadProducts,
-  } = useGetProductsQuery({ search: debouncedSearch || undefined, lowStock: lowStockOnly || undefined });
+  } = useGetProductsQuery({
+    search: debouncedSearch || undefined,
+    lowStock: lowStockOnly || undefined,
+  });
 
   const { data: categories = [] } = useGetCategoriesQuery();
 
@@ -128,25 +131,37 @@ export default function ProductsPage() {
   const { data: allProductsForRecipes = [] } = useGetProductsQuery({});
   const rawMaterials = useMemo(
     () => allProductsForRecipes.filter((p) => p.isWeighted),
-    [allProductsForRecipes]
+    [allProductsForRecipes],
   );
 
   const [createProduct, { isLoading: creating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: updating }] = useUpdateProductMutation();
   const [deleteProductMutation] = useDeleteProductMutation();
-  const [generateBarcode, { isLoading: generatingBarcode }] = useGenerateBarcodeMutation();
+  const [generateBarcode, { isLoading: generatingBarcode }] =
+    useGenerateBarcodeMutation();
   const [adjustStock, { isLoading: stockSaving }] = useAdjustStockMutation();
   const [repackage, { isLoading: repackageSaving }] = useRepackageMutation();
-  const [triggerGetLogs, { data: historyLogs = [], isFetching: historyLoading }] = useLazyGetProductLogsQuery();
+  const [
+    triggerGetLogs,
+    { data: historyLogs = [], isFetching: historyLoading },
+  ] = useLazyGetProductLogsQuery();
 
   const saving = creating || updating;
 
   useHardwareScanner(
-    (code) => { if (showForm && !form.isWeighted) setForm((f) => ({ ...f, barcode: code })); },
-    { active: showForm }
+    (code) => {
+      if (showForm && !form.isWeighted)
+        setForm((f) => ({ ...f, barcode: code }));
+    },
+    { active: showForm },
   );
 
-  const openAdd = () => { setForm(emptyForm); setEditingId(null); setError(""); setShowForm(true); };
+  const openAdd = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+    setError("");
+    setShowForm(true);
+  };
 
   const openEdit = (p) => {
     setForm({
@@ -233,10 +248,13 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id) => {
-    const ok = await confirm("هل أنت متأكد من حذف هذا المنتج؟ الإجراء ده مينفعش يترجع.", {
-      danger: true,
-      confirmLabel: "حذف",
-    });
+    const ok = await confirm(
+      "هل أنت متأكد من حذف هذا المنتج؟ الإجراء ده مينفعش يترجع.",
+      {
+        danger: true,
+        confirmLabel: "حذف",
+      },
+    );
     if (!ok) return;
     try {
       await deleteProductMutation(id).unwrap();
@@ -292,7 +310,7 @@ export default function ProductsPage() {
       }).unwrap();
       addToast(
         `تم إنتاج ${repackagePortions} ${repackageModal.unit} - تكلفة الوحدة ${data.costPerPortion.toFixed(2)} ج.م`,
-        "info"
+        "info",
       );
       setRepackageModal(null);
     } catch (err) {
@@ -312,7 +330,10 @@ export default function ProductsPage() {
     } else {
       body = {
         type: "stock_in",
-        purchasePrice: stockForm.purchasePrice !== "" ? Number(stockForm.purchasePrice) : undefined,
+        purchasePrice:
+          stockForm.purchasePrice !== ""
+            ? Number(stockForm.purchasePrice)
+            : undefined,
         expiryDate: stockForm.expiryDate || undefined,
         note: stockForm.note,
       };
@@ -325,7 +346,12 @@ export default function ProductsPage() {
     }
     try {
       await adjustStock({ id: stockModal._id, ...body }).unwrap();
-      addToast(stockMode === "stocktake" ? "تم تسجيل الجرد بنجاح" : "تم تسجيل التوريد بنجاح", "info");
+      addToast(
+        stockMode === "stocktake"
+          ? "تم تسجيل الجرد بنجاح"
+          : "تم تسجيل التوريد بنجاح",
+        "info",
+      );
       setStockModal(null);
     } catch (err) {
       addToast(err.data?.message || "حدث خطأ", "error");
@@ -333,14 +359,19 @@ export default function ProductsPage() {
   };
 
   // معاينة حية لإجمالي الكمية الداخلة
-  const previewQty = stockModal && stockForm.useCartons
-    ? Number(stockForm.cartons || 0) * stockModal.unitsPerCarton + Number(stockForm.looseUnits || 0)
-    : Number(stockForm.quantityChange || 0);
+  const previewQty =
+    stockModal && stockForm.useCartons
+      ? Number(stockForm.cartons || 0) * stockModal.unitsPerCarton +
+        Number(stockForm.looseUnits || 0)
+      : Number(stockForm.quantityChange || 0);
 
   return (
     <div>
       <div className="page-header">
-        <h2><Package size={20} className="page-header-icon" /> المنتجات والمخزون (الجرد)</h2>
+        <h2>
+          <Package size={20} className="page-header-icon" /> المنتجات والمخزون
+          (الجرد)
+        </h2>
         <button className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> إضافة منتج جديد
         </button>
@@ -357,7 +388,11 @@ export default function ProductsPage() {
           />
         </div>
         <label className="checkbox-label">
-          <input type="checkbox" checked={lowStockOnly} onChange={(e) => setLowStockOnly(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={lowStockOnly}
+            onChange={(e) => setLowStockOnly(e.target.checked)}
+          />
           منخفض المخزون فقط
         </label>
       </div>
@@ -382,64 +417,138 @@ export default function ProductsPage() {
           </thead>
           <tbody>
             {loading && <SkeletonRows columns={10} rows={6} />}
-            {!loading && products.map((p) => {
-              const nearest = p.nearestExpiry ? new Date(p.nearestExpiry) : null;
-              const daysLeft = nearest ? Math.ceil((nearest - new Date()) / 86400000) : null;
-              return (
-                <tr key={p._id} className={p.quantity <= p.lowStockThreshold ? "row-low-stock" : ""}>
-                  <td>
-                    {p.name}
-                    {p.recipeFrom?.product && (
-                      <div className="muted small">
-                        من: {p.recipeFrom.product.name} ({p.recipeFrom.quantityPerUnit} {p.recipeFrom.product.unit}/{p.unit})
-                      </div>
-                    )}
-                  </td>
-                  <td>{p.isWeighted ? <span className="badge badge-weight">بالوزن</span> : "معبأ"}</td>
-                  <td className="mono">{p.isWeighted ? p.scaleItemCode : p.barcode}</td>
-                  <td>{p.category?.name || "-"}</td>
-                  <td>{p.purchasePrice}</td>
-                  <td>{p.sellingPrice}{p.isWeighted && <span className="muted small"> /كجم</span>}</td>
-                  <td>{p.quantity} <span className="muted small">{p.unit}</span></td>
-                  <td>{p.unitsPerCarton > 1 ? `${p.unitsPerCarton} قطعة` : "-"}</td>
-                  <td>
-                    {nearest ? (
-                      <span className={daysLeft < 0 ? "badge badge-danger" : daysLeft <= 30 ? "badge badge-warn" : ""}>
-                        {nearest.toLocaleDateString("ar-EG")}
-                        {daysLeft < 0 ? " (منتهي)" : daysLeft <= 30 ? ` (${daysLeft} يوم)` : ""}
-                      </span>
-                    ) : "-"}
-                  </td>
-                  <td className="actions-cell">
-                    <button className="btn-link" onClick={() => openEdit(p)} title="تعديل">
-                      <Pencil size={14} /> تعديل
-                    </button>
-                    {!p.isWeighted && p.barcode && (
-                      <button className="btn-link" onClick={() => { setLabelProduct(p); setLabelCopies(1); }} title="عرض/طباعة الباركود">
-                        <QrCode size={14} /> الباركود
+            {!loading &&
+              products.map((p) => {
+                const nearest = p.nearestExpiry
+                  ? new Date(p.nearestExpiry)
+                  : null;
+                const daysLeft = nearest
+                  ? Math.ceil((nearest - new Date()) / 86400000)
+                  : null;
+                return (
+                  <tr
+                    key={p._id}
+                    className={
+                      p.quantity <= p.lowStockThreshold ? "row-low-stock" : ""
+                    }
+                  >
+                    <td>
+                      {p.name}
+                      {p.recipeFrom?.product && (
+                        <div className="muted small">
+                          من: {p.recipeFrom.product.name} (
+                          {p.recipeFrom.quantityPerUnit}{" "}
+                          {p.recipeFrom.product.unit}/{p.unit})
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {p.isWeighted ? (
+                        <span className="badge badge-weight">بالوزن</span>
+                      ) : (
+                        "معبأ"
+                      )}
+                    </td>
+                    <td className="mono">
+                      {p.isWeighted ? p.scaleItemCode : p.barcode}
+                    </td>
+                    <td>{p.category?.name || "-"}</td>
+                    <td>{p.purchasePrice}</td>
+                    <td>
+                      {p.sellingPrice}
+                      {p.isWeighted && (
+                        <span className="muted small"> /كجم</span>
+                      )}
+                    </td>
+                    <td>
+                      {p.quantity} <span className="muted small">{p.unit}</span>
+                    </td>
+                    <td>
+                      {p.unitsPerCarton > 1 ? `${p.unitsPerCarton} قطعة` : "-"}
+                    </td>
+                    <td>
+                      {nearest ? (
+                        <span
+                          className={
+                            daysLeft < 0
+                              ? "badge badge-danger"
+                              : daysLeft <= 30
+                                ? "badge badge-warn"
+                                : ""
+                          }
+                        >
+                          {nearest.toLocaleDateString("ar-EG")}
+                          {daysLeft < 0
+                            ? " (منتهي)"
+                            : daysLeft <= 30
+                              ? ` (${daysLeft} يوم)`
+                              : ""}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="actions-cell">
+                      <button
+                        className="btn-link"
+                        onClick={() => openEdit(p)}
+                        title="تعديل"
+                      >
+                        <Pencil size={14} /> تعديل
                       </button>
-                    )}
-                    <button className="btn-link" onClick={() => openStockModal(p, "stock_in")} title="توريد">
-                      <PackagePlus size={14} /> توريد
-                    </button>
-                    {p.recipeFrom?.product && (
-                      <button className="btn-link" onClick={() => openRepackageModal(p)} title="تعبئة">
-                        <Blend size={14} /> تعبئة
+                      {!p.isWeighted && p.barcode && (
+                        <button
+                          className="btn-link"
+                          onClick={() => {
+                            setLabelProduct(p);
+                            setLabelCopies(1);
+                          }}
+                          title="عرض/طباعة الباركود"
+                        >
+                          <QrCode size={14} /> الباركود
+                        </button>
+                      )}
+                      <button
+                        className="btn-link"
+                        onClick={() => openStockModal(p, "stock_in")}
+                        title="توريد"
+                      >
+                        <PackagePlus size={14} /> توريد
                       </button>
-                    )}
-                    <button className="btn-link" onClick={() => openStockModal(p, "stocktake")} title="جرد">
-                      <ClipboardCheck size={14} /> جرد
-                    </button>
-                    <button className="btn-link" onClick={() => openHistory(p)} title="سجل الحركة">
-                      <History size={14} /> السجل
-                    </button>
-                    <button className="btn-link btn-link-danger" onClick={() => handleDelete(p._id)} title="حذف">
-                      <Trash2 size={14} /> حذف
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                      {p.recipeFrom?.product && (
+                        <button
+                          className="btn-link"
+                          onClick={() => openRepackageModal(p)}
+                          title="تعبئة"
+                        >
+                          <Blend size={14} /> تعبئة
+                        </button>
+                      )}
+                      <button
+                        className="btn-link"
+                        onClick={() => openStockModal(p, "stocktake")}
+                        title="جرد"
+                      >
+                        <ClipboardCheck size={14} /> جرد
+                      </button>
+                      <button
+                        className="btn-link"
+                        onClick={() => openHistory(p)}
+                        title="سجل الحركة"
+                      >
+                        <History size={14} /> السجل
+                      </button>
+                      <button
+                        className="btn-link btn-link-danger"
+                        onClick={() => handleDelete(p._id)}
+                        title="حذف"
+                      >
+                        <Trash2 size={14} /> حذف
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       )}
@@ -447,10 +556,19 @@ export default function ProductsPage() {
       {!loading && !loadError && products.length === 0 && (
         <EmptyState
           icon={Package}
-          title={search || lowStockOnly ? "لا توجد منتجات مطابقة" : "لا توجد منتجات بعد"}
-          subtitle={search || lowStockOnly ? "جرّب تغيير كلمة البحث أو الفلتر" : "ابدأ بإضافة أول منتج في المخزون"}
+          title={
+            search || lowStockOnly
+              ? "لا توجد منتجات مطابقة"
+              : "لا توجد منتجات بعد"
+          }
+          subtitle={
+            search || lowStockOnly
+              ? "جرّب تغيير كلمة البحث أو الفلتر"
+              : "ابدأ بإضافة أول منتج في المخزون"
+          }
           action={
-            !search && !lowStockOnly && (
+            !search &&
+            !lowStockOnly && (
               <button className="btn btn-primary" onClick={openAdd}>
                 <Plus size={16} /> إضافة منتج جديد
               </button>
@@ -462,218 +580,325 @@ export default function ProductsPage() {
       {/* ---------- فورم إضافة / تعديل منتج ---------- */}
       <Modal open={showForm} onClose={() => setShowForm(false)} wide>
         <form onSubmit={handleSubmit}>
-            <h3>{editingId ? "تعديل منتج" : "إضافة منتج جديد"}</h3>
-            {error && <div className="alert alert-error">{error}</div>}
+          <h3>{editingId ? "تعديل منتج" : "إضافة منتج جديد"}</h3>
+          {error && <div className="alert alert-error">{error}</div>}
 
-            <label>اسم المنتج</label>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <label>اسم المنتج</label>
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
 
-            <label className="checkbox-label switch-row">
-              <input
-                type="checkbox"
-                checked={form.isWeighted}
-                onChange={(e) => setForm({
+          <label className="checkbox-label switch-row">
+            <input
+              type="checkbox"
+              checked={form.isWeighted}
+              onChange={(e) =>
+                setForm({
                   ...form,
                   isWeighted: e.target.checked,
                   unit: e.target.checked ? "kg" : "piece",
                   unitsPerCarton: e.target.checked ? 1 : form.unitsPerCarton,
-                })}
-                disabled={!!editingId}
-              />
-              منتج يُباع بالوزن (جبنة، لحوم، خضار) — يُقرأ من باركود الميزان
-            </label>
+                })
+              }
+              disabled={!!editingId}
+            />
+            منتج يُباع بالوزن (جبنة، لحوم، خضار) — يُقرأ من باركود الميزان
+          </label>
 
-            {form.isWeighted ? (
-              <>
-                <label>كود الصنف في الميزان (5 أرقام)</label>
+          {form.isWeighted ? (
+            <>
+              <label>كود الصنف في الميزان (5 أرقام)</label>
+              <input
+                className="mono"
+                value={form.scaleItemCode}
+                onChange={(e) =>
+                  setForm({ ...form, scaleItemCode: e.target.value })
+                }
+                placeholder="مثال: 12345"
+                maxLength={5}
+                required
+              />
+              <p className="muted small">
+                ده نفس الكود اللي مبرمجه على الميزان للصنف ده. الميزان بيطبع
+                باركود فيه الكود + الوزن.
+              </p>
+            </>
+          ) : (
+            <>
+              <label>
+                الباركود (امسح بالسكانر أو الكاميرا أو ولّده تلقائيًا)
+              </label>
+              <div className="barcode-row">
                 <input
                   className="mono"
-                  value={form.scaleItemCode}
-                  onChange={(e) => setForm({ ...form, scaleItemCode: e.target.value })}
-                  placeholder="مثال: 12345"
-                  maxLength={5}
+                  value={form.barcode}
+                  onChange={(e) =>
+                    setForm({ ...form, barcode: e.target.value })
+                  }
                   required
+                  disabled={!!editingId}
                 />
-                <p className="muted small">
-                  ده نفس الكود اللي مبرمجه على الميزان للصنف ده. الميزان بيطبع باركود فيه الكود + الوزن.
-                </p>
-              </>
-            ) : (
-              <>
-                <label>الباركود (امسح بالسكانر أو الكاميرا أو ولّده تلقائيًا)</label>
-                <div className="barcode-row">
-                  <input
-                    className="mono"
-                    value={form.barcode}
-                    onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                    required
-                    disabled={!!editingId}
-                  />
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowCamera(true)} disabled={!!editingId}>
-                    <Camera size={15} /> كاميرا
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleGenerateBarcode}
-                    disabled={!!editingId || generatingBarcode}
-                    title="لمنتج مالوش باركود من المصنع (عيش، بقالة سايبة، منتج محلي)"
-                  >
-                    {generatingBarcode ? <Spinner /> : <><Wand2 size={15} /> توليد باركود</>}
-                  </button>
-                </div>
-              </>
-            )}
-
-            <label>الفئة</label>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-              <option value="">بدون فئة</option>
-              {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </select>
-
-            <div className="form-row">
-              <div>
-                <label>سعر الشراء {form.isWeighted && "(للكيلو)"}</label>
-                <input type="number" step="0.01" value={form.purchasePrice}
-                  onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })} required />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowCamera(true)}
+                  disabled={!!editingId}
+                >
+                  <Camera size={15} /> كاميرا
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleGenerateBarcode}
+                  disabled={!!editingId || generatingBarcode}
+                  title="لمنتج مالوش باركود من المصنع (عيش، بقالة سايبة، منتج محلي)"
+                >
+                  {generatingBarcode ? (
+                    <Spinner />
+                  ) : (
+                    <>
+                      <Wand2 size={15} /> توليد باركود
+                    </>
+                  )}
+                </button>
               </div>
-              <div>
-                <label>سعر البيع {form.isWeighted && "(للكيلو)"}</label>
-                <input type="number" step="0.01" value={form.sellingPrice}
-                  onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} required />
-              </div>
+            </>
+          )}
+
+          <label>الفئة</label>
+          <select
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          >
+            <option value="">بدون فئة</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="form-row">
+            <div>
+              <label>سعر الشراء {form.isWeighted && "(للكيلو)"}</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.purchasePrice}
+                onChange={(e) =>
+                  setForm({ ...form, purchasePrice: e.target.value })
+                }
+                required
+              />
             </div>
+            <div>
+              <label>سعر البيع {form.isWeighted && "(للكيلو)"}</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.sellingPrice}
+                onChange={(e) =>
+                  setForm({ ...form, sellingPrice: e.target.value })
+                }
+                required
+              />
+            </div>
+          </div>
 
-            <div className="form-row">
-              <div>
-                <label>
-                  {editingId
-                    ? "الكمية (عدّلها من زر التوريد/الجرد)"
-                    : form.recipeRawId
+          <div className="form-row">
+            <div>
+              <label>
+                {editingId
+                  ? "الكمية (عدّلها من زر التوريد/الجرد)"
+                  : form.recipeRawId
                     ? "عدد الوحدات المراد إنتاجها الآن"
                     : "الكمية الافتتاحية"}
-                </label>
-                <input type="number" step="0.001" value={form.quantity}
-                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                  disabled={!!editingId} required={!editingId} />
+              </label>
+              <input
+                type="number"
+                step="0.001"
+                value={form.quantity}
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                disabled={!!editingId}
+                required={!editingId}
+              />
+            </div>
+            <div>
+              <label>حد التنبيه لنقص المخزون</label>
+              <input
+                type="number"
+                value={form.lowStockThreshold}
+                onChange={(e) =>
+                  setForm({ ...form, lowStockThreshold: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          {!form.isWeighted && (
+            <div className="form-row">
+              <div>
+                <label>عدد القطع في الكرتونة</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.unitsPerCarton}
+                  onChange={(e) =>
+                    setForm({ ...form, unitsPerCarton: e.target.value })
+                  }
+                />
+                <p className="muted small">
+                  مثال: كرتونة شيبسي = 24 كيس. هتورّد بالكرتونة وتبيع بالقطعة.
+                </p>
               </div>
               <div>
-                <label>حد التنبيه لنقص المخزون</label>
-                <input type="number" value={form.lowStockThreshold}
-                  onChange={(e) => setForm({ ...form, lowStockThreshold: e.target.value })} />
+                <label>الوحدة</label>
+                <input
+                  value={form.unit}
+                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                />
               </div>
             </div>
+          )}
 
-            {!form.isWeighted && (
-              <div className="form-row">
-                <div>
-                  <label>عدد القطع في الكرتونة</label>
-                  <input type="number" min="1" value={form.unitsPerCarton}
-                    onChange={(e) => setForm({ ...form, unitsPerCarton: e.target.value })} />
-                  <p className="muted small">مثال: كرتونة شيبسي = 24 كيس. هتورّد بالكرتونة وتبيع بالقطعة.</p>
-                </div>
-                <div>
-                  <label>الوحدة</label>
-                  <input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                </div>
-              </div>
-            )}
+          {!form.isWeighted && rawMaterials.length > 0 && (
+            <>
+              <label className="checkbox-label switch-row">
+                <input
+                  type="checkbox"
+                  checked={!!form.recipeRawId}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      recipeRawId: e.target.checked ? rawMaterials[0]._id : "",
+                      recipeQuantityPerUnit: e.target.checked
+                        ? form.recipeQuantityPerUnit
+                        : "",
+                    })
+                  }
+                />
+                المنتج ده مُعبّأ/مقسّم من خامة تانية (زي طبق جبنة أو أنشوجة من
+                قالب سايب)
+              </label>
 
-            {!form.isWeighted && rawMaterials.length > 0 && (
-              <>
-                <label className="checkbox-label switch-row">
-                  <input
-                    type="checkbox"
-                    checked={!!form.recipeRawId}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        recipeRawId: e.target.checked ? rawMaterials[0]._id : "",
-                        recipeQuantityPerUnit: e.target.checked ? form.recipeQuantityPerUnit : "",
-                      })
-                    }
-                  />
-                  المنتج ده مُعبّأ/مقسّم من خامة تانية (زي طبق جبنة أو أنشوجة من قالب سايب)
-                </label>
-
-                {form.recipeRawId && (
-                  <>
-                    <div className="form-row">
-                      <div>
-                        <label>الخامة</label>
-                        <select
-                          value={form.recipeRawId}
-                          onChange={(e) => setForm({ ...form, recipeRawId: e.target.value })}
-                        >
-                          {rawMaterials.map((r) => (
-                            <option key={r._id} value={r._id}>
-                              {r.name} (متاح: {r.quantity} {r.unit})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label>الكمية المستهلكة من الخامة لكل وحدة (كجم)</label>
-                        <input
-                          type="number"
-                          step="0.001"
-                          placeholder="مثال: 0.1 لطبق 100 جرام"
-                          value={form.recipeQuantityPerUnit}
-                          onChange={(e) => setForm({ ...form, recipeQuantityPerUnit: e.target.value })}
-                        />
-                      </div>
+              {form.recipeRawId && (
+                <>
+                  <div className="form-row">
+                    <div>
+                      <label>الخامة</label>
+                      <select
+                        value={form.recipeRawId}
+                        onChange={(e) =>
+                          setForm({ ...form, recipeRawId: e.target.value })
+                        }
+                      >
+                        {rawMaterials.map((r) => (
+                          <option key={r._id} value={r._id}>
+                            {r.name} (متاح: {r.quantity} {r.unit})
+                          </option>
+                        ))}
+                      </select>
                     </div>
+                    <div>
+                      <label>الكمية المستهلكة من الخامة لكل وحدة (كجم)</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        placeholder="مثال: 0.1 لطبق 100 جرام"
+                        value={form.recipeQuantityPerUnit}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            recipeQuantityPerUnit: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
 
-                    {!editingId && form.quantity > 0 && form.recipeQuantityPerUnit > 0 && (() => {
-                      const rawProduct = rawMaterials.find((r) => r._id === form.recipeRawId);
-                      const needed = Number((form.quantity * form.recipeQuantityPerUnit).toFixed(3));
-                      const enough = rawProduct && rawProduct.quantity >= needed;
+                  {!editingId &&
+                    form.quantity > 0 &&
+                    form.recipeQuantityPerUnit > 0 &&
+                    (() => {
+                      const rawProduct = rawMaterials.find(
+                        (r) => r._id === form.recipeRawId,
+                      );
+                      const needed = Number(
+                        (form.quantity * form.recipeQuantityPerUnit).toFixed(3),
+                      );
+                      const enough =
+                        rawProduct && rawProduct.quantity >= needed;
                       return (
                         <p className={enough ? "preview-qty" : "diff-negative"}>
-                          هيتم خصم {needed} {rawProduct?.unit} من "{rawProduct?.name}" فورًا عند الحفظ
-                          {enough ? "" : ` — غير كافي! المتاح ${rawProduct?.quantity} بس`}
+                          هيتم خصم {needed} {rawProduct?.unit} من "
+                          {rawProduct?.name}" فورًا عند الحفظ
+                          {enough
+                            ? ""
+                            : ` — غير كافي! المتاح ${rawProduct?.quantity} بس`}
                         </p>
                       );
                     })()}
-                  </>
-                )}
-                <p className="muted small">
-                  {form.recipeRawId && !editingId
-                    ? "الكمية اللي كتبتها فوق هتتخصم من الخامة دي فورًا وقت الحفظ. لإنتاج دفعات إضافية بعد كده، استخدم زرار \"تعبئة\" في جدول المنتجات."
-                    : "بعد الحفظ، استخدم زرار \"تعبئة\" في جدول المنتجات لإنتاج وحدات جاهزة من الخامة دي - التكلفة والخصم من المخزون بيتحسبوا أوتوماتيك."}
-                </p>
-              </>
-            )}
+                </>
+              )}
+              <p className="muted small">
+                {form.recipeRawId && !editingId
+                  ? 'الكمية اللي كتبتها فوق هتتخصم من الخامة دي فورًا وقت الحفظ. لإنتاج دفعات إضافية بعد كده، استخدم زرار "تعبئة" في جدول المنتجات.'
+                  : 'بعد الحفظ، استخدم زرار "تعبئة" في جدول المنتجات لإنتاج وحدات جاهزة من الخامة دي - التكلفة والخصم من المخزون بيتحسبوا أوتوماتيك.'}
+              </p>
+            </>
+          )}
 
-            <label className="checkbox-label switch-row">
-              <input type="checkbox" checked={form.trackExpiry}
-                onChange={(e) => setForm({ ...form, trackExpiry: e.target.checked })} />
-              تتبّع تاريخ الصلاحية (للأكل والشرب والأدوية)
-            </label>
+          <label className="checkbox-label switch-row">
+            <input
+              type="checkbox"
+              checked={form.trackExpiry}
+              onChange={(e) =>
+                setForm({ ...form, trackExpiry: e.target.checked })
+              }
+            />
+            تتبّع تاريخ الصلاحية (للأكل والشرب والأدوية)
+          </label>
 
-            {form.trackExpiry && !editingId && (
-              <>
-                <label>تاريخ صلاحية الكمية الافتتاحية</label>
-                <input type="date" value={form.expiryDate}
-                  onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
-                <p className="muted small">
-                  كل شحنة جديدة هتدخلها بتاريخ صلاحية خاص بيها، والبيع بيخصم من الأقرب انتهاءً أولاً (FEFO).
-                </p>
-              </>
-            )}
+          {form.trackExpiry && !editingId && (
+            <>
+              <label>تاريخ صلاحية الكمية الافتتاحية</label>
+              <input
+                type="date"
+                value={form.expiryDate}
+                onChange={(e) =>
+                  setForm({ ...form, expiryDate: e.target.value })
+                }
+              />
+              <p className="muted small">
+                كل شحنة جديدة هتدخلها بتاريخ صلاحية خاص بيها، والبيع بيخصم من
+                الأقرب انتهاءً أولاً (FEFO).
+              </p>
+            </>
+          )}
 
-            <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>إلغاء</button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? <Spinner /> : "حفظ"}
-              </button>
-            </div>
-          </form>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowForm(false)}
+            >
+              إلغاء
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? <Spinner /> : "حفظ"}
+            </button>
+          </div>
+        </form>
       </Modal>
 
       {showCamera && (
         <CameraScanner
-          onScan={(code) => { setForm((f) => ({ ...f, barcode: code })); setShowCamera(false); }}
+          onScan={(code) => {
+            setForm((f) => ({ ...f, barcode: code }));
+            setShowCamera(false);
+          }}
           onClose={() => setShowCamera(false)}
         />
       )}
@@ -681,18 +906,42 @@ export default function ProductsPage() {
       {/* ---------- فورم التوريد / الجرد ---------- */}
       <Modal open={!!stockModal} onClose={() => setStockModal(null)}>
         {stockModal && (
-        <form onSubmit={submitStockChange}>
-            <h3>{stockMode === "stocktake" ? "جرد" : "توريد"}: {stockModal.name}</h3>
-            <p className="muted">الكمية الحالية: {stockModal.quantity} {stockModal.unit}</p>
+          <form onSubmit={submitStockChange}>
+            <h3>
+              {stockMode === "stocktake" ? "جرد" : "توريد"}: {stockModal.name}
+            </h3>
+            <p className="muted">
+              الكمية الحالية: {stockModal.quantity} {stockModal.unit}
+            </p>
 
             {stockMode === "stocktake" ? (
               <>
                 <label>الكمية الفعلية المعدودة في المخزن</label>
-                <input type="number" step="0.001" value={stockForm.countedQuantity}
-                  onChange={(e) => setStockForm({ ...stockForm, countedQuantity: e.target.value })} required />
+                <input
+                  type="number"
+                  step="0.001"
+                  value={stockForm.countedQuantity}
+                  onChange={(e) =>
+                    setStockForm({
+                      ...stockForm,
+                      countedQuantity: e.target.value,
+                    })
+                  }
+                  required
+                />
                 {stockForm.countedQuantity !== "" && (
-                  <p className={Number(stockForm.countedQuantity) - stockModal.quantity < 0 ? "diff-negative" : "diff-positive"}>
-                    الفرق: {(Number(stockForm.countedQuantity) - stockModal.quantity).toFixed(3)}
+                  <p
+                    className={
+                      Number(stockForm.countedQuantity) - stockModal.quantity <
+                      0
+                        ? "diff-negative"
+                        : "diff-positive"
+                    }
+                  >
+                    الفرق:{" "}
+                    {(
+                      Number(stockForm.countedQuantity) - stockModal.quantity
+                    ).toFixed(3)}
                   </p>
                 )}
               </>
@@ -700,9 +949,18 @@ export default function ProductsPage() {
               <>
                 {stockModal.unitsPerCarton > 1 && (
                   <label className="checkbox-label switch-row">
-                    <input type="checkbox" checked={stockForm.useCartons}
-                      onChange={(e) => setStockForm({ ...stockForm, useCartons: e.target.checked })} />
-                    إدخال بالكراتين (الكرتونة = {stockModal.unitsPerCarton} {stockModal.unit})
+                    <input
+                      type="checkbox"
+                      checked={stockForm.useCartons}
+                      onChange={(e) =>
+                        setStockForm({
+                          ...stockForm,
+                          useCartons: e.target.checked,
+                        })
+                      }
+                    />
+                    إدخال بالكراتين (الكرتونة = {stockModal.unitsPerCarton}{" "}
+                    {stockModal.unit})
                   </label>
                 )}
 
@@ -710,47 +968,110 @@ export default function ProductsPage() {
                   <div className="form-row">
                     <div>
                       <label>عدد الكراتين</label>
-                      <input type="number" min="0" value={stockForm.cartons}
-                        onChange={(e) => setStockForm({ ...stockForm, cartons: e.target.value })} />
+                      <input
+                        type="number"
+                        min="0"
+                        value={stockForm.cartons}
+                        onChange={(e) =>
+                          setStockForm({
+                            ...stockForm,
+                            cartons: e.target.value,
+                          })
+                        }
+                      />
                     </div>
                     <div>
                       <label>قطع سايبة (إضافية)</label>
-                      <input type="number" min="0" value={stockForm.looseUnits}
-                        onChange={(e) => setStockForm({ ...stockForm, looseUnits: e.target.value })} />
+                      <input
+                        type="number"
+                        min="0"
+                        value={stockForm.looseUnits}
+                        onChange={(e) =>
+                          setStockForm({
+                            ...stockForm,
+                            looseUnits: e.target.value,
+                          })
+                        }
+                      />
                     </div>
                   </div>
                 ) : (
                   <>
                     <label>الكمية المضافة</label>
-                    <input type="number" step="0.001" value={stockForm.quantityChange}
-                      onChange={(e) => setStockForm({ ...stockForm, quantityChange: e.target.value })} required />
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={stockForm.quantityChange}
+                      onChange={(e) =>
+                        setStockForm({
+                          ...stockForm,
+                          quantityChange: e.target.value,
+                        })
+                      }
+                      required
+                    />
                   </>
                 )}
 
                 {previewQty > 0 && (
-                  <p className="preview-qty">إجمالي الداخل: <strong>{previewQty}</strong> {stockModal.unit}</p>
+                  <p className="preview-qty">
+                    إجمالي الداخل: <strong>{previewQty}</strong>{" "}
+                    {stockModal.unit}
+                  </p>
                 )}
 
                 <label>سعر شراء الوحدة في الشحنة دي</label>
-                <input type="number" step="0.01" value={stockForm.purchasePrice}
-                  onChange={(e) => setStockForm({ ...stockForm, purchasePrice: e.target.value })} />
+                <input
+                  type="number"
+                  step="0.01"
+                  value={stockForm.purchasePrice}
+                  onChange={(e) =>
+                    setStockForm({
+                      ...stockForm,
+                      purchasePrice: e.target.value,
+                    })
+                  }
+                />
 
                 {stockModal.trackExpiry && (
                   <>
                     <label>تاريخ صلاحية الشحنة</label>
-                    <input type="date" value={stockForm.expiryDate}
-                      onChange={(e) => setStockForm({ ...stockForm, expiryDate: e.target.value })} />
+                    <input
+                      type="date"
+                      value={stockForm.expiryDate}
+                      onChange={(e) =>
+                        setStockForm({
+                          ...stockForm,
+                          expiryDate: e.target.value,
+                        })
+                      }
+                    />
                   </>
                 )}
               </>
             )}
 
             <label>ملاحظة (اختياري)</label>
-            <input value={stockForm.note} onChange={(e) => setStockForm({ ...stockForm, note: e.target.value })} />
+            <input
+              value={stockForm.note}
+              onChange={(e) =>
+                setStockForm({ ...stockForm, note: e.target.value })
+              }
+            />
 
             <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setStockModal(null)}>إلغاء</button>
-              <button type="submit" className="btn btn-primary" disabled={stockSaving}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStockModal(null)}
+              >
+                إلغاء
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={stockSaving}
+              >
                 {stockSaving ? <Spinner /> : "حفظ"}
               </button>
             </div>
@@ -761,11 +1082,12 @@ export default function ProductsPage() {
       {/* ---------- تعبئة/تقسيم من خامة ---------- */}
       <Modal open={!!repackageModal} onClose={() => setRepackageModal(null)}>
         {repackageModal && (
-        <form onSubmit={submitRepackage}>
+          <form onSubmit={submitRepackage}>
             <h3>تعبئة: {repackageModal.name}</h3>
             <p className="muted">
               من الخامة: {repackageModal.recipeFrom.product.name} — متاح حاليًا{" "}
-              {repackageModal.recipeFrom.product.quantity} {repackageModal.recipeFrom.product.unit}
+              {repackageModal.recipeFrom.product.quantity}{" "}
+              {repackageModal.recipeFrom.product.unit}
             </p>
 
             <label>عدد الوحدات ({repackageModal.unit}) المراد إنتاجها</label>
@@ -778,28 +1100,44 @@ export default function ProductsPage() {
               autoFocus
             />
 
-            {repackagePortions > 0 && (() => {
-              const needed = Number(
-                (repackagePortions * repackageModal.recipeFrom.quantityPerUnit).toFixed(3)
-              );
-              const available = repackageModal.recipeFrom.product.quantity;
-              const enough = available >= needed;
-              return (
-                <p className={enough ? "preview-qty" : "diff-negative"}>
-                  محتاج {needed} {repackageModal.recipeFrom.product.unit} من الخامة
-                  {enough ? "" : ` — غير كافي! المتاح ${available} بس`}
-                </p>
-              );
-            })()}
+            {repackagePortions > 0 &&
+              (() => {
+                const needed = Number(
+                  (
+                    repackagePortions *
+                    repackageModal.recipeFrom.quantityPerUnit
+                  ).toFixed(3),
+                );
+                const available = repackageModal.recipeFrom.product.quantity;
+                const enough = available >= needed;
+                return (
+                  <p className={enough ? "preview-qty" : "diff-negative"}>
+                    محتاج {needed} {repackageModal.recipeFrom.product.unit} من
+                    الخامة
+                    {enough ? "" : ` — غير كافي! المتاح ${available} بس`}
+                  </p>
+                );
+              })()}
 
             <label>ملاحظة (اختياري)</label>
-            <input value={repackageNote} onChange={(e) => setRepackageNote(e.target.value)} />
+            <input
+              value={repackageNote}
+              onChange={(e) => setRepackageNote(e.target.value)}
+            />
 
             <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setRepackageModal(null)}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setRepackageModal(null)}
+              >
                 إلغاء
               </button>
-              <button type="submit" className="btn btn-primary" disabled={repackageSaving}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={repackageSaving}
+              >
                 {repackageSaving ? <Spinner /> : "تنفيذ التعبئة"}
               </button>
             </div>
@@ -808,9 +1146,14 @@ export default function ProductsPage() {
       </Modal>
 
       {/* ---------- معاينة وطباعة ملصق الباركود ---------- */}
-      <Modal open={!!labelProduct} onClose={() => setLabelProduct(null)} className="label-modal">
+      <Modal
+        open={!!labelProduct}
+        onClose={() => setLabelProduct(null)}
+        className="label-modal"
+      >
         {labelProduct && (
-        <><h3>ملصق باركود: {labelProduct.name}</h3>
+          <>
+            <h3>ملصق باركود: {labelProduct.name}</h3>
             <div className="label-preview">
               <Suspense fallback={<Spinner size={24} />}>
                 <BarcodeLabel
@@ -829,28 +1172,47 @@ export default function ProductsPage() {
               min="1"
               max="100"
               value={labelCopies}
-              onChange={(e) => setLabelCopies(Math.max(1, Number(e.target.value) || 1))}
+              onChange={(e) =>
+                setLabelCopies(Math.max(1, Number(e.target.value) || 1))
+              }
             />
 
             <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setLabelProduct(null)}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setLabelProduct(null)}
+              >
                 إغلاق
               </button>
-              <button type="button" className="btn btn-primary" onClick={() => printLabel(labelCopies)}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => printLabel(labelCopies)}
+              >
                 طباعة {labelCopies > 1 ? `(${labelCopies} نسخة)` : ""}
               </button>
             </div>
-        </>
+          </>
         )}
       </Modal>
 
       {/* ---------- سجل حركة المخزون ---------- */}
-      <Modal open={!!historyProduct} onClose={() => setHistoryProduct(null)} wide>
+      <Modal
+        open={!!historyProduct}
+        onClose={() => setHistoryProduct(null)}
+        wide
+      >
         {historyProduct && (
           <>
-            <h3><History size={18} className="page-header-icon" /> سجل الحركة: {historyProduct.name}</h3>
+            <h3>
+              <History size={18} className="page-header-icon" /> سجل الحركة:{" "}
+              {historyProduct.name}
+            </h3>
             {historyLoading ? (
-              <div className="picker-loading"><Spinner size={26} /></div>
+              <div className="picker-loading">
+                <Spinner size={26} />
+              </div>
             ) : historyLogs.length === 0 ? (
               <EmptyState icon={History} title="مفيش حركة مسجلة لسه" />
             ) : (
@@ -870,26 +1232,54 @@ export default function ProductsPage() {
                   {historyLogs.map((log) => (
                     <tr key={log._id}>
                       <td>
-                        {log.type === "sale" && <span className="badge badge-danger"><ArrowDownCircle size={12} /> بيع</span>}
-                        {log.type === "stock_in" && <span className="badge badge-weight"><ArrowUpCircle size={12} /> توريد</span>}
-                        {log.type === "adjustment" && <span className="badge badge-warn"><MinusCircle size={12} /> تعديل</span>}
-                        {log.type === "stocktake" && <span className="badge badge-role-cashier">جرد</span>}
+                        {log.type === "sale" && (
+                          <span className="badge badge-danger">
+                            <ArrowDownCircle size={12} /> بيع
+                          </span>
+                        )}
+                        {log.type === "stock_in" && (
+                          <span className="badge badge-weight">
+                            <ArrowUpCircle size={12} /> توريد
+                          </span>
+                        )}
+                        {log.type === "adjustment" && (
+                          <span className="badge badge-warn">
+                            <MinusCircle size={12} /> تعديل
+                          </span>
+                        )}
+                        {log.type === "stocktake" && (
+                          <span className="badge badge-role-cashier">جرد</span>
+                        )}
                       </td>
                       <td>{log.quantityBefore}</td>
-                      <td className={log.quantityChange < 0 ? "diff-negative" : "diff-positive"}>
-                        {log.quantityChange > 0 ? "+" : ""}{log.quantityChange}
+                      <td
+                        className={
+                          log.quantityChange < 0
+                            ? "diff-negative"
+                            : "diff-positive"
+                        }
+                      >
+                        {log.quantityChange > 0 ? "+" : ""}
+                        {log.quantityChange}
                       </td>
                       <td>{log.quantityAfter}</td>
                       <td className="muted small">{log.note || "-"}</td>
                       <td>{log.performedBy?.name || "-"}</td>
-                      <td className="muted small">{new Date(log.createdAt).toLocaleString("ar-EG")}</td>
+                      <td className="muted small">
+                        {new Date(log.createdAt).toLocaleString("ar-EG")}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setHistoryProduct(null)}>إغلاق</button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setHistoryProduct(null)}
+              >
+                إغلاق
+              </button>
             </div>
           </>
         )}

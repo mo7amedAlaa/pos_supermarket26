@@ -82,7 +82,11 @@ app.use(errorHandler);
 const server = http.createServer(app);
 
 initSocket(server);
-
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () =>
+  console.log(`Server (HTTP + Realtime) running on port ${PORT}`),
+);
+connectDB();
 module.exports = {
   app,
   server,
