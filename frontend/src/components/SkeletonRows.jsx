@@ -5,7 +5,10 @@ export default function SkeletonRows({ columns, rows = 5 }) {
         <tr key={r} className="skeleton-row">
           {Array.from({ length: columns }).map((_, c) => (
             <td key={c}>
-              <div className="skeleton-bar" style={{ animationDelay: `${(r * columns + c) * 0.03}s` }} />
+              <div
+                className="skeleton-bar"
+                style={{ animationDelay: `${(r * columns + c) * 0.03}s` }}
+              />
             </td>
           ))}
         </tr>

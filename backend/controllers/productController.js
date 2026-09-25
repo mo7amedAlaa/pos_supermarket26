@@ -95,7 +95,8 @@ exports.scanCode = async (req, res) => {
       if (scale.weightKg !== undefined) {
         quantity = scale.weightKg;
       } else {
-        quantity = product.sellingPrice > 0 ? scale.priceEGP / product.sellingPrice : 0;
+        quantity =
+          product.sellingPrice > 0 ? scale.priceEGP / product.sellingPrice : 0;
       }
 
       return res.json({
@@ -128,7 +129,10 @@ exports.scanCode = async (req, res) => {
 // @route GET /api/products/barcode/:barcode  (محتفظ بيها للتوافق)
 exports.getProductByBarcode = async (req, res) => {
   try {
-    const product = await Product.findOne({ barcode: req.params.barcode, isActive: true });
+    const product = await Product.findOne({
+      barcode: req.params.barcode,
+      isActive: true,
+    });
     if (!product) return res.status(404).json({ message: "المنتج غير موجود" });
     res.json(product);
   } catch (err) {
@@ -148,17 +152,21 @@ exports.getProductByBarcode = async (req, res) => {
 async function performRepackage({ finished, portions, note, userId, session }) {
   if (!finished.recipeFrom?.product || !finished.recipeFrom?.quantityPerUnit) {
     throw new Error(
-      "المنتج ده لازم يتربط بخامة وكمية استهلاك لكل وحدة الأول (من فورم إضافة/تعديل المنتج)"
+      "المنتج ده لازم يتربط بخامة وكمية استهلاك لكل وحدة الأول (من فورم إضافة/تعديل المنتج)",
     );
   }
 
-  const raw = await Product.findById(finished.recipeFrom.product).session(session);
+  const raw = await Product.findById(finished.recipeFrom.product).session(
+    session,
+  );
   if (!raw) throw new Error("الخامة المرتبطة بالمنتج غير موجودة");
 
-  const rawNeeded = Number((portions * finished.recipeFrom.quantityPerUnit).toFixed(3));
+  const rawNeeded = Number(
+    (portions * finished.recipeFrom.quantityPerUnit).toFixed(3),
+  );
   if (raw.quantity < rawNeeded) {
     throw new Error(
-      `الخامة "${raw.name}" غير كافية - المطلوب ${rawNeeded} ${raw.unit}، المتاح ${raw.quantity} ${raw.unit}`
+      `الخامة "${raw.name}" غير كافية - المطلوب ${rawNeeded} ${raw.unit}، المتاح ${raw.quantity} ${raw.unit}`,
     );
   }
 
@@ -180,7 +188,7 @@ async function performRepackage({ finished, portions, note, userId, session }) {
         performedBy: userId,
       },
     ],
-    { session }
+    { session },
   );
 
   // إضافة الوحدات الجاهزة + تحديث سعر الشراء (التكلفة) تلقائيًا من التكلفة
@@ -203,7 +211,7 @@ async function performRepackage({ finished, portions, note, userId, session }) {
         performedBy: userId,
       },
     ],
-    { session }
+    { session },
   );
 
   return { finished, raw, rawNeeded, costPerPortion };
@@ -215,13 +223,18 @@ exports.createProduct = async (req, res) => {
 
     // نطهّر القيمتين من المسافات الفاضية الأول عشان نتحقق صح
     // (مثلاً " " ملهاش قيمة حقيقية لكنها truthy في جافاسكريبت)
-    const trimmedBarcode = typeof body.barcode === "string" ? body.barcode.trim() : body.barcode;
+    const trimmedBarcode =
+      typeof body.barcode === "string" ? body.barcode.trim() : body.barcode;
     const trimmedScaleCode =
-      typeof body.scaleItemCode === "string" ? body.scaleItemCode.trim() : body.scaleItemCode;
+      typeof body.scaleItemCode === "string"
+        ? body.scaleItemCode.trim()
+        : body.scaleItemCode;
 
     if (body.isWeighted) {
       if (!trimmedScaleCode) {
-        return res.status(400).json({ message: "المنتج بالوزن لازم يكون له كود صنف في الميزان" });
+        return res
+          .status(400)
+          .json({ message: "المنتج بالوزن لازم يكون له كود صنف في الميزان" });
       }
       body.scaleItemCode = trimmedScaleCode;
       body.unit = body.unit || "kg";
@@ -229,7 +242,9 @@ exports.createProduct = async (req, res) => {
       delete body.barcode; // المنتج الموزون مالهوش باركود ثابت
     } else {
       if (!trimmedBarcode) {
-        return res.status(400).json({ message: "الباركود مطلوب للمنتجات المعبأة" });
+        return res
+          .status(400)
+          .json({ message: "الباركود مطلوب للمنتجات المعبأة" });
       }
       body.barcode = trimmedBarcode;
       delete body.scaleItemCode; // المنتج المعبأ مالهوش كود ميزان
@@ -238,15 +253,22 @@ exports.createProduct = async (req, res) => {
     // منع التكرار (نتحقق بعد التطهير، ومفيش داعي نتحقق من قيم فاضية)
     if (body.barcode) {
       const dup = await Product.findOne({ barcode: body.barcode });
-      if (dup) return res.status(400).json({ message: "الباركود مستخدم بالفعل لمنتج آخر" });
+      if (dup)
+        return res
+          .status(400)
+          .json({ message: "الباركود مستخدم بالفعل لمنتج آخر" });
     }
     if (body.scaleItemCode) {
       const dup = await Product.findOne({ scaleItemCode: body.scaleItemCode });
-      if (dup) return res.status(400).json({ message: "كود صنف الميزان مستخدم بالفعل" });
+      if (dup)
+        return res
+          .status(400)
+          .json({ message: "كود صنف الميزان مستخدم بالفعل" });
     }
 
     const openingQty = Number(body.quantity || 0);
-    const hasRecipe = body.recipeFrom?.product && body.recipeFrom?.quantityPerUnit;
+    const hasRecipe =
+      body.recipeFrom?.product && body.recipeFrom?.quantityPerUnit;
 
     // ------------------------------------------------------------------
     // الحالة 1: منتج مربوط بخامة (زي طبق جبنة) وله رصيد افتتاحي > 0
@@ -258,7 +280,9 @@ exports.createProduct = async (req, res) => {
     if (hasRecipe && openingQty > 0) {
       try {
         const result = await withTransaction(async (session) => {
-          const created = await Product.create([{ ...body, quantity: 0 }], { session });
+          const created = await Product.create([{ ...body, quantity: 0 }], {
+            session,
+          });
           const finished = created[0];
           return performRepackage({
             finished,
@@ -269,8 +293,13 @@ exports.createProduct = async (req, res) => {
           });
         });
 
-        emitEvent("product:created", { productId: result.finished._id, name: result.finished.name });
-        emitEvent("stock:changed", { productIds: [result.finished._id, result.raw._id] });
+        emitEvent("product:created", {
+          productId: result.finished._id,
+          name: result.finished.name,
+        });
+        emitEvent("stock:changed", {
+          productIds: [result.finished._id, result.raw._id],
+        });
 
         return res.status(201).json({
           ...result.finished.toObject(),
@@ -314,7 +343,10 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    emitEvent("product:created", { productId: product._id, name: product.name });
+    emitEvent("product:created", {
+      productId: product._id,
+      name: product.name,
+    });
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -328,7 +360,8 @@ exports.createProduct = async (req, res) => {
 // تاني بباركود جديد.
 exports.updateProduct = async (req, res) => {
   try {
-    const { quantity, batches, barcode, scaleItemCode, isWeighted, ...rest } = req.body;
+    const { quantity, batches, barcode, scaleItemCode, isWeighted, ...rest } =
+      req.body;
     const product = await Product.findByIdAndUpdate(req.params.id, rest, {
       new: true,
       runValidators: true,
@@ -430,7 +463,8 @@ exports.adjustStock = async (req, res) => {
       if (purchasePrice !== undefined && change > 0) {
         const newPrice = Number(purchasePrice);
         if (quantityBefore > 0 && product.purchasePrice > 0) {
-          const totalCost = quantityBefore * product.purchasePrice + change * newPrice;
+          const totalCost =
+            quantityBefore * product.purchasePrice + change * newPrice;
           const totalQty = quantityBefore + change;
           const oldAvg = product.purchasePrice;
           product.purchasePrice = Number((totalCost / totalQty).toFixed(4));
@@ -444,7 +478,9 @@ exports.adjustStock = async (req, res) => {
     }
 
     if (product.quantity < 0) {
-      return res.status(400).json({ message: "الكمية الناتجة لا يمكن أن تكون أقل من صفر" });
+      return res
+        .status(400)
+        .json({ message: "الكمية الناتجة لا يمكن أن تكون أقل من صفر" });
     }
 
     await product.save();
@@ -495,16 +531,26 @@ exports.repackage = async (req, res) => {
     const note = req.body.note || "";
 
     if (!portions || portions <= 0) {
-      return res.status(400).json({ message: "عدد الوحدات المطلوب إنتاجها غير صحيح" });
+      return res
+        .status(400)
+        .json({ message: "عدد الوحدات المطلوب إنتاجها غير صحيح" });
     }
 
     const result = await withTransaction(async (session) => {
       const finished = await Product.findById(finishedId).session(session);
       if (!finished) throw new Error("المنتج غير موجود");
-      return performRepackage({ finished, portions, note, userId: req.user._id, session });
+      return performRepackage({
+        finished,
+        portions,
+        note,
+        userId: req.user._id,
+        session,
+      });
     });
 
-    emitEvent("stock:changed", { productIds: [result.finished._id, result.raw._id] });
+    emitEvent("stock:changed", {
+      productIds: [result.finished._id, result.raw._id],
+    });
 
     res.json({
       finished: result.finished,
@@ -524,16 +570,22 @@ exports.getExpiringProducts = async (req, res) => {
     const limit = new Date();
     limit.setDate(limit.getDate() + days);
 
-    const products = await Product.find({ isActive: true, trackExpiry: true }).populate(
-      "category",
-      "name"
-    );
+    const products = await Product.find({
+      isActive: true,
+      trackExpiry: true,
+    }).populate("category", "name");
 
     const rows = [];
     for (const p of products) {
       for (const batch of p.batches) {
-        if (batch.quantity > 0 && batch.expiryDate && batch.expiryDate <= limit) {
-          const daysLeft = Math.ceil((batch.expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        if (
+          batch.quantity > 0 &&
+          batch.expiryDate &&
+          batch.expiryDate <= limit
+        ) {
+          const daysLeft = Math.ceil(
+            (batch.expiryDate - new Date()) / (1000 * 60 * 60 * 24),
+          );
           rows.push({
             productId: p._id,
             name: p.name,
@@ -565,7 +617,9 @@ exports.deleteProduct = async (req, res) => {
     // حماية: لو المنتج ده مستخدم كخامة لمنتج تاني (زي "جبنة سايب" خامة
     // لـ"طبق جبنة")، منسمحش بالحذف عشان منسيبش المنتج التاني معلّق بربط
     // بخامة مش موجودة. لازم يفكّ الربط من المنتج التاني الأول.
-    const dependents = await Product.find({ "recipeFrom.product": req.params.id }).select("name");
+    const dependents = await Product.find({
+      "recipeFrom.product": req.params.id,
+    }).select("name");
     if (dependents.length > 0) {
       const names = dependents.map((d) => d.name).join("، ");
       return res.status(400).json({

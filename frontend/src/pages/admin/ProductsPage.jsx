@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, Suspense, lazy } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetProductsQuery,
   useGetCategoriesQuery,
@@ -41,6 +42,21 @@ import {
 // jsbarcode مكتبة مش صغيرة ومستخدمة بس لما الأدمن يفتح معاينة الملصق -
 // نحمّلها عند الطلب بدل ما تتضاف لأول تحميل للصفحة كلها
 const BarcodeLabel = lazy(() => import("../../components/BarcodeLabel"));
+
+// كلاسات موحدة بنكررها في كل الفورمات جوه الصفحة دي
+const input =
+  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 disabled:text-zinc-400";
+const label = "mb-1 mt-3 block text-xs font-medium text-zinc-500";
+const btnPrimary =
+  "flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300";
+const btnSecondary =
+  "flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50";
+const btnLink =
+  "flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-xs font-medium text-zinc-500 transition hover:bg-emerald-50 hover:text-emerald-700";
+const btnLinkDanger =
+  "flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-xs font-medium text-zinc-500 transition hover:bg-red-50 hover:text-red-600";
+const checkboxRow = "mt-3 flex items-center gap-2 text-sm text-zinc-700";
+const formRow = "grid grid-cols-1 gap-3 sm:grid-cols-2";
 
 const emptyForm = {
   name: "",
@@ -367,31 +383,36 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>
-          <Package size={20} className="page-header-icon" /> المنتجات والمخزون
-          (الجرد)
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-800">
+          <Package size={20} className="text-emerald-600" />
+          المنتجات والمخزون (الجرد)
         </h2>
-        <button className="btn btn-primary" onClick={openAdd}>
+        <button className={btnPrimary} onClick={openAdd}>
           <Plus size={16} /> إضافة منتج جديد
         </button>
       </div>
 
-      <div className="toolbar">
-        <div className="input-with-icon toolbar-search">
-          <Search size={16} className="input-icon" />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[260px] flex-1">
+          <Search
+            size={16}
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
+          />
           <input
             type="text"
             placeholder="بحث بالاسم أو الباركود أو كود الميزان..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className={`${input} pr-9`}
           />
         </div>
-        <label className="checkbox-label">
+        <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600">
           <input
             type="checkbox"
             checked={lowStockOnly}
             onChange={(e) => setLowStockOnly(e.target.checked)}
+            className="h-4 w-4 rounded accent-emerald-600"
           />
           منخفض المخزون فقط
         </label>
@@ -400,157 +421,180 @@ export default function ProductsPage() {
       {loadError ? (
         <ErrorState message="تعذر تحميل المنتجات" onRetry={loadProducts} />
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>الاسم</th>
-              <th>النوع</th>
-              <th>الباركود / كود الميزان</th>
-              <th>الفئة</th>
-              <th>شراء</th>
-              <th>بيع</th>
-              <th>الكمية</th>
-              <th>الكرتونة</th>
-              <th>أقرب صلاحية</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <SkeletonRows columns={10} rows={6} />}
-            {!loading &&
-              products.map((p) => {
-                const nearest = p.nearestExpiry
-                  ? new Date(p.nearestExpiry)
-                  : null;
-                const daysLeft = nearest
-                  ? Math.ceil((nearest - new Date()) / 86400000)
-                  : null;
-                return (
-                  <tr
-                    key={p._id}
-                    className={
-                      p.quantity <= p.lowStockThreshold ? "row-low-stock" : ""
-                    }
-                  >
-                    <td>
-                      {p.name}
-                      {p.recipeFrom?.product && (
-                        <div className="muted small">
-                          من: {p.recipeFrom.product.name} (
-                          {p.recipeFrom.quantityPerUnit}{" "}
-                          {p.recipeFrom.product.unit}/{p.unit})
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      {p.isWeighted ? (
-                        <span className="badge badge-weight">بالوزن</span>
-                      ) : (
-                        "معبأ"
-                      )}
-                    </td>
-                    <td className="mono">
-                      {p.isWeighted ? p.scaleItemCode : p.barcode}
-                    </td>
-                    <td>{p.category?.name || "-"}</td>
-                    <td>{p.purchasePrice}</td>
-                    <td>
-                      {p.sellingPrice}
-                      {p.isWeighted && (
-                        <span className="muted small"> /كجم</span>
-                      )}
-                    </td>
-                    <td>
-                      {p.quantity} <span className="muted small">{p.unit}</span>
-                    </td>
-                    <td>
-                      {p.unitsPerCarton > 1 ? `${p.unitsPerCarton} قطعة` : "-"}
-                    </td>
-                    <td>
-                      {nearest ? (
-                        <span
-                          className={
-                            daysLeft < 0
-                              ? "badge badge-danger"
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+          <table className="w-full text-right text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-xs font-medium text-zinc-500">
+                <th className="px-4 py-3">الاسم</th>
+                <th className="hidden px-4 py-3 sm:table-cell">النوع</th>
+                <th className="hidden px-4 py-3 md:table-cell">
+                  الباركود / كود الميزان
+                </th>
+                <th className="hidden px-4 py-3 lg:table-cell">الفئة</th>
+                <th className="hidden px-4 py-3 lg:table-cell">شراء</th>
+                <th className="px-4 py-3">بيع</th>
+                <th className="px-4 py-3">الكمية</th>
+                <th className="hidden px-4 py-3 xl:table-cell">الكرتونة</th>
+                <th className="hidden px-4 py-3 md:table-cell">أقرب صلاحية</th>
+                <th className="px-4 py-3">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {loading && <SkeletonRows columns={10} rows={6} />}
+              {!loading &&
+                products.map((p) => {
+                  const nearest = p.nearestExpiry
+                    ? new Date(p.nearestExpiry)
+                    : null;
+                  const daysLeft = nearest
+                    ? Math.ceil((nearest - new Date()) / 86400000)
+                    : null;
+                  const isLow = p.quantity <= p.lowStockThreshold;
+                  return (
+                    <tr
+                      key={p._id}
+                      className={
+                        isLow ? "bg-amber-50/50" : "hover:bg-zinc-50/70"
+                      }
+                    >
+                      <td className="px-4 py-2.5">
+                        {p.name}
+                        {p.recipeFrom?.product && (
+                          <div className="text-xs text-zinc-400">
+                            من: {p.recipeFrom.product.name} (
+                            {p.recipeFrom.quantityPerUnit}{" "}
+                            {p.recipeFrom.product.unit}/{p.unit})
+                          </div>
+                        )}
+                      </td>
+                      <td className="hidden px-4 py-2.5 sm:table-cell">
+                        {p.isWeighted ? (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                            بالوزن
+                          </span>
+                        ) : (
+                          <span className="text-zinc-500">معبأ</span>
+                        )}
+                      </td>
+                      <td className="hidden px-4 py-2.5 font-mono text-xs text-zinc-500 md:table-cell">
+                        {p.isWeighted ? p.scaleItemCode : p.barcode}
+                      </td>
+                      <td className="hidden px-4 py-2.5 text-zinc-500 lg:table-cell">
+                        {p.category?.name || "-"}
+                      </td>
+                      <td className="hidden px-4 py-2.5 lg:table-cell">
+                        {p.purchasePrice}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {p.sellingPrice}
+                        {p.isWeighted && (
+                          <span className="text-xs text-zinc-400"> /كجم</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {p.quantity}{" "}
+                        <span className="text-xs text-zinc-400">{p.unit}</span>
+                      </td>
+                      <td className="hidden px-4 py-2.5 text-zinc-500 xl:table-cell">
+                        {p.unitsPerCarton > 1
+                          ? `${p.unitsPerCarton} قطعة`
+                          : "-"}
+                      </td>
+                      <td className="hidden px-4 py-2.5 md:table-cell">
+                        {nearest ? (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                              daysLeft < 0
+                                ? "bg-red-50 text-red-600"
+                                : daysLeft <= 30
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "text-zinc-500"
+                            }`}
+                          >
+                            {nearest.toLocaleDateString("ar-EG")}
+                            {daysLeft < 0
+                              ? " (منتهي)"
                               : daysLeft <= 30
-                                ? "badge badge-warn"
-                                : ""
-                          }
-                        >
-                          {nearest.toLocaleDateString("ar-EG")}
-                          {daysLeft < 0
-                            ? " (منتهي)"
-                            : daysLeft <= 30
-                              ? ` (${daysLeft} يوم)`
-                              : ""}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn-link"
-                        onClick={() => openEdit(p)}
-                        title="تعديل"
-                      >
-                        <Pencil size={14} /> تعديل
-                      </button>
-                      {!p.isWeighted && p.barcode && (
-                        <button
-                          className="btn-link"
-                          onClick={() => {
-                            setLabelProduct(p);
-                            setLabelCopies(1);
-                          }}
-                          title="عرض/طباعة الباركود"
-                        >
-                          <QrCode size={14} /> الباركود
-                        </button>
-                      )}
-                      <button
-                        className="btn-link"
-                        onClick={() => openStockModal(p, "stock_in")}
-                        title="توريد"
-                      >
-                        <PackagePlus size={14} /> توريد
-                      </button>
-                      {p.recipeFrom?.product && (
-                        <button
-                          className="btn-link"
-                          onClick={() => openRepackageModal(p)}
-                          title="تعبئة"
-                        >
-                          <Blend size={14} /> تعبئة
-                        </button>
-                      )}
-                      <button
-                        className="btn-link"
-                        onClick={() => openStockModal(p, "stocktake")}
-                        title="جرد"
-                      >
-                        <ClipboardCheck size={14} /> جرد
-                      </button>
-                      <button
-                        className="btn-link"
-                        onClick={() => openHistory(p)}
-                        title="سجل الحركة"
-                      >
-                        <History size={14} /> السجل
-                      </button>
-                      <button
-                        className="btn-link btn-link-danger"
-                        onClick={() => handleDelete(p._id)}
-                        title="حذف"
-                      >
-                        <Trash2 size={14} /> حذف
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
+                                ? ` (${daysLeft} يوم)`
+                                : ""}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-300">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-wrap gap-0.5">
+                          <button
+                            className={btnLink}
+                            onClick={() => openEdit(p)}
+                            title="تعديل"
+                          >
+                            <Pencil size={14} />{" "}
+                            <span className="hidden sm:inline">تعديل</span>
+                          </button>
+                          {!p.isWeighted && p.barcode && (
+                            <button
+                              className={btnLink}
+                              onClick={() => {
+                                setLabelProduct(p);
+                                setLabelCopies(1);
+                              }}
+                              title="عرض/طباعة الباركود"
+                            >
+                              <QrCode size={14} />{" "}
+                              <span className="hidden sm:inline">الباركود</span>
+                            </button>
+                          )}
+                          <button
+                            className={btnLink}
+                            onClick={() => openStockModal(p, "stock_in")}
+                            title="توريد"
+                          >
+                            <PackagePlus size={14} />{" "}
+                            <span className="hidden sm:inline">توريد</span>
+                          </button>
+                          {p.recipeFrom?.product && (
+                            <button
+                              className={btnLink}
+                              onClick={() => openRepackageModal(p)}
+                              title="تعبئة"
+                            >
+                              <Blend size={14} />{" "}
+                              <span className="hidden sm:inline">تعبئة</span>
+                            </button>
+                          )}
+                          <button
+                            className={btnLink}
+                            onClick={() => openStockModal(p, "stocktake")}
+                            title="جرد"
+                          >
+                            <ClipboardCheck size={14} />{" "}
+                            <span className="hidden sm:inline">جرد</span>
+                          </button>
+                          <button
+                            className={btnLink}
+                            onClick={() => openHistory(p)}
+                            title="سجل الحركة"
+                          >
+                            <History size={14} />{" "}
+                            <span className="hidden sm:inline">السجل</span>
+                          </button>
+                          <button
+                            className={btnLinkDanger}
+                            onClick={() => handleDelete(p._id)}
+                            title="حذف"
+                          >
+                            <Trash2 size={14} />{" "}
+                            <span className="hidden sm:inline">حذف</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {!loading && !loadError && products.length === 0 && (
@@ -569,7 +613,7 @@ export default function ProductsPage() {
           action={
             !search &&
             !lowStockOnly && (
-              <button className="btn btn-primary" onClick={openAdd}>
+              <button className={btnPrimary} onClick={openAdd}>
                 <Plus size={16} /> إضافة منتج جديد
               </button>
             )
@@ -579,20 +623,28 @@ export default function ProductsPage() {
 
       {/* ---------- فورم إضافة / تعديل منتج ---------- */}
       <Modal open={showForm} onClose={() => setShowForm(false)} wide>
-        <form onSubmit={handleSubmit}>
-          <h3>{editingId ? "تعديل منتج" : "إضافة منتج جديد"}</h3>
-          {error && <div className="alert alert-error">{error}</div>}
+        <form onSubmit={handleSubmit} className="p-1">
+          <h3 className="text-base font-semibold text-zinc-800">
+            {editingId ? "تعديل منتج" : "إضافة منتج جديد"}
+          </h3>
+          {error && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-          <label>اسم المنتج</label>
+          <label className={label}>اسم المنتج</label>
           <input
+            className={input}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
 
-          <label className="checkbox-label switch-row">
+          <label className={checkboxRow}>
             <input
               type="checkbox"
+              className="h-4 w-4 rounded accent-emerald-600"
               checked={form.isWeighted}
               onChange={(e) =>
                 setForm({
@@ -609,9 +661,9 @@ export default function ProductsPage() {
 
           {form.isWeighted ? (
             <>
-              <label>كود الصنف في الميزان (5 أرقام)</label>
+              <label className={label}>كود الصنف في الميزان (5 أرقام)</label>
               <input
-                className="mono"
+                className={`${input} font-mono`}
                 value={form.scaleItemCode}
                 onChange={(e) =>
                   setForm({ ...form, scaleItemCode: e.target.value })
@@ -620,19 +672,19 @@ export default function ProductsPage() {
                 maxLength={5}
                 required
               />
-              <p className="muted small">
+              <p className="mt-1.5 text-xs text-zinc-400">
                 ده نفس الكود اللي مبرمجه على الميزان للصنف ده. الميزان بيطبع
                 باركود فيه الكود + الوزن.
               </p>
             </>
           ) : (
             <>
-              <label>
+              <label className={label}>
                 الباركود (امسح بالسكانر أو الكاميرا أو ولّده تلقائيًا)
               </label>
-              <div className="barcode-row">
+              <div className="flex gap-2">
                 <input
-                  className="mono"
+                  className={`${input} font-mono`}
                   value={form.barcode}
                   onChange={(e) =>
                     setForm({ ...form, barcode: e.target.value })
@@ -642,7 +694,7 @@ export default function ProductsPage() {
                 />
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className={btnSecondary}
                   onClick={() => setShowCamera(true)}
                   disabled={!!editingId}
                 >
@@ -650,7 +702,7 @@ export default function ProductsPage() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className={btnSecondary}
                   onClick={handleGenerateBarcode}
                   disabled={!!editingId || generatingBarcode}
                   title="لمنتج مالوش باركود من المصنع (عيش، بقالة سايبة، منتج محلي)"
@@ -667,8 +719,9 @@ export default function ProductsPage() {
             </>
           )}
 
-          <label>الفئة</label>
+          <label className={label}>الفئة</label>
           <select
+            className={input}
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
@@ -680,12 +733,15 @@ export default function ProductsPage() {
             ))}
           </select>
 
-          <div className="form-row">
+          <div className={formRow}>
             <div>
-              <label>سعر الشراء {form.isWeighted && "(للكيلو)"}</label>
+              <label className={label}>
+                سعر الشراء {form.isWeighted && "(للكيلو)"}
+              </label>
               <input
                 type="number"
                 step="0.01"
+                className={input}
                 value={form.purchasePrice}
                 onChange={(e) =>
                   setForm({ ...form, purchasePrice: e.target.value })
@@ -694,10 +750,13 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label>سعر البيع {form.isWeighted && "(للكيلو)"}</label>
+              <label className={label}>
+                سعر البيع {form.isWeighted && "(للكيلو)"}
+              </label>
               <input
                 type="number"
                 step="0.01"
+                className={input}
                 value={form.sellingPrice}
                 onChange={(e) =>
                   setForm({ ...form, sellingPrice: e.target.value })
@@ -707,9 +766,9 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <div className="form-row">
+          <div className={formRow}>
             <div>
-              <label>
+              <label className={label}>
                 {editingId
                   ? "الكمية (عدّلها من زر التوريد/الجرد)"
                   : form.recipeRawId
@@ -719,6 +778,7 @@ export default function ProductsPage() {
               <input
                 type="number"
                 step="0.001"
+                className={input}
                 value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                 disabled={!!editingId}
@@ -726,9 +786,10 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label>حد التنبيه لنقص المخزون</label>
+              <label className={label}>حد التنبيه لنقص المخزون</label>
               <input
                 type="number"
+                className={input}
                 value={form.lowStockThreshold}
                 onChange={(e) =>
                   setForm({ ...form, lowStockThreshold: e.target.value })
@@ -738,24 +799,26 @@ export default function ProductsPage() {
           </div>
 
           {!form.isWeighted && (
-            <div className="form-row">
+            <div className={formRow}>
               <div>
-                <label>عدد القطع في الكرتونة</label>
+                <label className={label}>عدد القطع في الكرتونة</label>
                 <input
                   type="number"
                   min="1"
+                  className={input}
                   value={form.unitsPerCarton}
                   onChange={(e) =>
                     setForm({ ...form, unitsPerCarton: e.target.value })
                   }
                 />
-                <p className="muted small">
+                <p className="mt-1.5 text-xs text-zinc-400">
                   مثال: كرتونة شيبسي = 24 كيس. هتورّد بالكرتونة وتبيع بالقطعة.
                 </p>
               </div>
               <div>
-                <label>الوحدة</label>
+                <label className={label}>الوحدة</label>
                 <input
+                  className={input}
                   value={form.unit}
                   onChange={(e) => setForm({ ...form, unit: e.target.value })}
                 />
@@ -765,9 +828,10 @@ export default function ProductsPage() {
 
           {!form.isWeighted && rawMaterials.length > 0 && (
             <>
-              <label className="checkbox-label switch-row">
+              <label className={checkboxRow}>
                 <input
                   type="checkbox"
+                  className="h-4 w-4 rounded accent-emerald-600"
                   checked={!!form.recipeRawId}
                   onChange={(e) =>
                     setForm({
@@ -785,10 +849,11 @@ export default function ProductsPage() {
 
               {form.recipeRawId && (
                 <>
-                  <div className="form-row">
+                  <div className={formRow}>
                     <div>
-                      <label>الخامة</label>
+                      <label className={label}>الخامة</label>
                       <select
+                        className={input}
                         value={form.recipeRawId}
                         onChange={(e) =>
                           setForm({ ...form, recipeRawId: e.target.value })
@@ -802,11 +867,14 @@ export default function ProductsPage() {
                       </select>
                     </div>
                     <div>
-                      <label>الكمية المستهلكة من الخامة لكل وحدة (كجم)</label>
+                      <label className={label}>
+                        الكمية المستهلكة من الخامة لكل وحدة (كجم)
+                      </label>
                       <input
                         type="number"
                         step="0.001"
                         placeholder="مثال: 0.1 لطبق 100 جرام"
+                        className={input}
                         value={form.recipeQuantityPerUnit}
                         onChange={(e) =>
                           setForm({
@@ -831,7 +899,9 @@ export default function ProductsPage() {
                       const enough =
                         rawProduct && rawProduct.quantity >= needed;
                       return (
-                        <p className={enough ? "preview-qty" : "diff-negative"}>
+                        <p
+                          className={`mt-2 text-xs font-medium ${enough ? "text-emerald-700" : "text-red-600"}`}
+                        >
                           هيتم خصم {needed} {rawProduct?.unit} من "
                           {rawProduct?.name}" فورًا عند الحفظ
                           {enough
@@ -842,7 +912,7 @@ export default function ProductsPage() {
                     })()}
                 </>
               )}
-              <p className="muted small">
+              <p className="mt-1.5 text-xs text-zinc-400">
                 {form.recipeRawId && !editingId
                   ? 'الكمية اللي كتبتها فوق هتتخصم من الخامة دي فورًا وقت الحفظ. لإنتاج دفعات إضافية بعد كده، استخدم زرار "تعبئة" في جدول المنتجات.'
                   : 'بعد الحفظ، استخدم زرار "تعبئة" في جدول المنتجات لإنتاج وحدات جاهزة من الخامة دي - التكلفة والخصم من المخزون بيتحسبوا أوتوماتيك.'}
@@ -850,9 +920,10 @@ export default function ProductsPage() {
             </>
           )}
 
-          <label className="checkbox-label switch-row">
+          <label className={checkboxRow}>
             <input
               type="checkbox"
+              className="h-4 w-4 rounded accent-emerald-600"
               checked={form.trackExpiry}
               onChange={(e) =>
                 setForm({ ...form, trackExpiry: e.target.checked })
@@ -863,30 +934,31 @@ export default function ProductsPage() {
 
           {form.trackExpiry && !editingId && (
             <>
-              <label>تاريخ صلاحية الكمية الافتتاحية</label>
+              <label className={label}>تاريخ صلاحية الكمية الافتتاحية</label>
               <input
                 type="date"
+                className={input}
                 value={form.expiryDate}
                 onChange={(e) =>
                   setForm({ ...form, expiryDate: e.target.value })
                 }
               />
-              <p className="muted small">
+              <p className="mt-1.5 text-xs text-zinc-400">
                 كل شحنة جديدة هتدخلها بتاريخ صلاحية خاص بيها، والبيع بيخصم من
                 الأقرب انتهاءً أولاً (FEFO).
               </p>
             </>
           )}
 
-          <div className="modal-actions">
+          <div className="mt-5 flex justify-end gap-2 border-t border-zinc-100 pt-4">
             <button
               type="button"
-              className="btn btn-secondary"
+              className={btnSecondary}
               onClick={() => setShowForm(false)}
             >
               إلغاء
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button type="submit" className={btnPrimary} disabled={saving}>
               {saving ? <Spinner /> : "حفظ"}
             </button>
           </div>
@@ -907,19 +979,22 @@ export default function ProductsPage() {
       <Modal open={!!stockModal} onClose={() => setStockModal(null)}>
         {stockModal && (
           <form onSubmit={submitStockChange}>
-            <h3>
+            <h3 className="text-base font-semibold text-zinc-800">
               {stockMode === "stocktake" ? "جرد" : "توريد"}: {stockModal.name}
             </h3>
-            <p className="muted">
+            <p className="mt-1 text-sm text-zinc-500">
               الكمية الحالية: {stockModal.quantity} {stockModal.unit}
             </p>
 
             {stockMode === "stocktake" ? (
               <>
-                <label>الكمية الفعلية المعدودة في المخزن</label>
+                <label className={label}>
+                  الكمية الفعلية المعدودة في المخزن
+                </label>
                 <input
                   type="number"
                   step="0.001"
+                  className={input}
                   value={stockForm.countedQuantity}
                   onChange={(e) =>
                     setStockForm({
@@ -931,12 +1006,12 @@ export default function ProductsPage() {
                 />
                 {stockForm.countedQuantity !== "" && (
                   <p
-                    className={
+                    className={`mt-2 text-xs font-medium ${
                       Number(stockForm.countedQuantity) - stockModal.quantity <
                       0
-                        ? "diff-negative"
-                        : "diff-positive"
-                    }
+                        ? "text-red-600"
+                        : "text-emerald-700"
+                    }`}
                   >
                     الفرق:{" "}
                     {(
@@ -948,9 +1023,10 @@ export default function ProductsPage() {
             ) : (
               <>
                 {stockModal.unitsPerCarton > 1 && (
-                  <label className="checkbox-label switch-row">
+                  <label className={checkboxRow}>
                     <input
                       type="checkbox"
+                      className="h-4 w-4 rounded accent-emerald-600"
                       checked={stockForm.useCartons}
                       onChange={(e) =>
                         setStockForm({
@@ -965,12 +1041,13 @@ export default function ProductsPage() {
                 )}
 
                 {stockForm.useCartons && stockModal.unitsPerCarton > 1 ? (
-                  <div className="form-row">
+                  <div className={formRow}>
                     <div>
-                      <label>عدد الكراتين</label>
+                      <label className={label}>عدد الكراتين</label>
                       <input
                         type="number"
                         min="0"
+                        className={input}
                         value={stockForm.cartons}
                         onChange={(e) =>
                           setStockForm({
@@ -981,10 +1058,11 @@ export default function ProductsPage() {
                       />
                     </div>
                     <div>
-                      <label>قطع سايبة (إضافية)</label>
+                      <label className={label}>قطع سايبة (إضافية)</label>
                       <input
                         type="number"
                         min="0"
+                        className={input}
                         value={stockForm.looseUnits}
                         onChange={(e) =>
                           setStockForm({
@@ -997,10 +1075,11 @@ export default function ProductsPage() {
                   </div>
                 ) : (
                   <>
-                    <label>الكمية المضافة</label>
+                    <label className={label}>الكمية المضافة</label>
                     <input
                       type="number"
                       step="0.001"
+                      className={input}
                       value={stockForm.quantityChange}
                       onChange={(e) =>
                         setStockForm({
@@ -1014,16 +1093,17 @@ export default function ProductsPage() {
                 )}
 
                 {previewQty > 0 && (
-                  <p className="preview-qty">
+                  <p className="mt-2 text-xs font-medium text-emerald-700">
                     إجمالي الداخل: <strong>{previewQty}</strong>{" "}
                     {stockModal.unit}
                   </p>
                 )}
 
-                <label>سعر شراء الوحدة في الشحنة دي</label>
+                <label className={label}>سعر شراء الوحدة في الشحنة دي</label>
                 <input
                   type="number"
                   step="0.01"
+                  className={input}
                   value={stockForm.purchasePrice}
                   onChange={(e) =>
                     setStockForm({
@@ -1035,9 +1115,10 @@ export default function ProductsPage() {
 
                 {stockModal.trackExpiry && (
                   <>
-                    <label>تاريخ صلاحية الشحنة</label>
+                    <label className={label}>تاريخ صلاحية الشحنة</label>
                     <input
                       type="date"
+                      className={input}
                       value={stockForm.expiryDate}
                       onChange={(e) =>
                         setStockForm({
@@ -1051,25 +1132,26 @@ export default function ProductsPage() {
               </>
             )}
 
-            <label>ملاحظة (اختياري)</label>
+            <label className={label}>ملاحظة (اختياري)</label>
             <input
+              className={input}
               value={stockForm.note}
               onChange={(e) =>
                 setStockForm({ ...stockForm, note: e.target.value })
               }
             />
 
-            <div className="modal-actions">
+            <div className="mt-5 flex justify-end gap-2 border-t border-zinc-100 pt-4">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={btnSecondary}
                 onClick={() => setStockModal(null)}
               >
                 إلغاء
               </button>
               <button
                 type="submit"
-                className="btn btn-primary"
+                className={btnPrimary}
                 disabled={stockSaving}
               >
                 {stockSaving ? <Spinner /> : "حفظ"}
@@ -1083,17 +1165,22 @@ export default function ProductsPage() {
       <Modal open={!!repackageModal} onClose={() => setRepackageModal(null)}>
         {repackageModal && (
           <form onSubmit={submitRepackage}>
-            <h3>تعبئة: {repackageModal.name}</h3>
-            <p className="muted">
+            <h3 className="text-base font-semibold text-zinc-800">
+              تعبئة: {repackageModal.name}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500">
               من الخامة: {repackageModal.recipeFrom.product.name} — متاح حاليًا{" "}
               {repackageModal.recipeFrom.product.quantity}{" "}
               {repackageModal.recipeFrom.product.unit}
             </p>
 
-            <label>عدد الوحدات ({repackageModal.unit}) المراد إنتاجها</label>
+            <label className={label}>
+              عدد الوحدات ({repackageModal.unit}) المراد إنتاجها
+            </label>
             <input
               type="number"
               min="1"
+              className={input}
               value={repackagePortions}
               onChange={(e) => setRepackagePortions(e.target.value)}
               required
@@ -1111,7 +1198,9 @@ export default function ProductsPage() {
                 const available = repackageModal.recipeFrom.product.quantity;
                 const enough = available >= needed;
                 return (
-                  <p className={enough ? "preview-qty" : "diff-negative"}>
+                  <p
+                    className={`mt-2 text-xs font-medium ${enough ? "text-emerald-700" : "text-red-600"}`}
+                  >
                     محتاج {needed} {repackageModal.recipeFrom.product.unit} من
                     الخامة
                     {enough ? "" : ` — غير كافي! المتاح ${available} بس`}
@@ -1119,23 +1208,24 @@ export default function ProductsPage() {
                 );
               })()}
 
-            <label>ملاحظة (اختياري)</label>
+            <label className={label}>ملاحظة (اختياري)</label>
             <input
+              className={input}
               value={repackageNote}
               onChange={(e) => setRepackageNote(e.target.value)}
             />
 
-            <div className="modal-actions">
+            <div className="mt-5 flex justify-end gap-2 border-t border-zinc-100 pt-4">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={btnSecondary}
                 onClick={() => setRepackageModal(null)}
               >
                 إلغاء
               </button>
               <button
                 type="submit"
-                className="btn btn-primary"
+                className={btnPrimary}
                 disabled={repackageSaving}
               >
                 {repackageSaving ? <Spinner /> : "تنفيذ التعبئة"}
@@ -1153,8 +1243,10 @@ export default function ProductsPage() {
       >
         {labelProduct && (
           <>
-            <h3>ملصق باركود: {labelProduct.name}</h3>
-            <div className="label-preview">
+            <h3 className="text-base font-semibold text-zinc-800">
+              ملصق باركود: {labelProduct.name}
+            </h3>
+            <div className="mt-3 flex justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4">
               <Suspense fallback={<Spinner size={24} />}>
                 <BarcodeLabel
                   ref={labelRef}
@@ -1166,28 +1258,29 @@ export default function ProductsPage() {
               </Suspense>
             </div>
 
-            <label>عدد النسخ (لعدة قطع)</label>
+            <label className={label}>عدد النسخ (لعدة قطع)</label>
             <input
               type="number"
               min="1"
               max="100"
+              className={input}
               value={labelCopies}
               onChange={(e) =>
                 setLabelCopies(Math.max(1, Number(e.target.value) || 1))
               }
             />
 
-            <div className="modal-actions">
+            <div className="mt-5 flex justify-end gap-2 border-t border-zinc-100 pt-4">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={btnSecondary}
                 onClick={() => setLabelProduct(null)}
               >
                 إغلاق
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className={btnPrimary}
                 onClick={() => printLabel(labelCopies)}
               >
                 طباعة {labelCopies > 1 ? `(${labelCopies} نسخة)` : ""}
@@ -1205,77 +1298,81 @@ export default function ProductsPage() {
       >
         {historyProduct && (
           <>
-            <h3>
-              <History size={18} className="page-header-icon" /> سجل الحركة:{" "}
+            <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-800">
+              <History size={18} className="text-emerald-600" /> سجل الحركة:{" "}
               {historyProduct.name}
             </h3>
             {historyLoading ? (
-              <div className="picker-loading">
+              <div className="flex justify-center py-10">
                 <Spinner size={26} />
               </div>
             ) : historyLogs.length === 0 ? (
               <EmptyState icon={History} title="مفيش حركة مسجلة لسه" />
             ) : (
-              <table className="table" style={{ marginTop: 14 }}>
-                <thead>
-                  <tr>
-                    <th>النوع</th>
-                    <th>قبل</th>
-                    <th>التغيير</th>
-                    <th>بعد</th>
-                    <th>ملاحظة</th>
-                    <th>بواسطة</th>
-                    <th>التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historyLogs.map((log) => (
-                    <tr key={log._id}>
-                      <td>
-                        {log.type === "sale" && (
-                          <span className="badge badge-danger">
-                            <ArrowDownCircle size={12} /> بيع
-                          </span>
-                        )}
-                        {log.type === "stock_in" && (
-                          <span className="badge badge-weight">
-                            <ArrowUpCircle size={12} /> توريد
-                          </span>
-                        )}
-                        {log.type === "adjustment" && (
-                          <span className="badge badge-warn">
-                            <MinusCircle size={12} /> تعديل
-                          </span>
-                        )}
-                        {log.type === "stocktake" && (
-                          <span className="badge badge-role-cashier">جرد</span>
-                        )}
-                      </td>
-                      <td>{log.quantityBefore}</td>
-                      <td
-                        className={
-                          log.quantityChange < 0
-                            ? "diff-negative"
-                            : "diff-positive"
-                        }
-                      >
-                        {log.quantityChange > 0 ? "+" : ""}
-                        {log.quantityChange}
-                      </td>
-                      <td>{log.quantityAfter}</td>
-                      <td className="muted small">{log.note || "-"}</td>
-                      <td>{log.performedBy?.name || "-"}</td>
-                      <td className="muted small">
-                        {new Date(log.createdAt).toLocaleString("ar-EG")}
-                      </td>
+              <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-200">
+                <table className="w-full text-right text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-200 text-xs font-medium text-zinc-500">
+                      <th className="px-3 py-2.5">النوع</th>
+                      <th className="px-3 py-2.5">قبل</th>
+                      <th className="px-3 py-2.5">التغيير</th>
+                      <th className="px-3 py-2.5">بعد</th>
+                      <th className="px-3 py-2.5">ملاحظة</th>
+                      <th className="px-3 py-2.5">بواسطة</th>
+                      <th className="px-3 py-2.5">التاريخ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {historyLogs.map((log) => (
+                      <tr key={log._id}>
+                        <td className="px-3 py-2">
+                          {log.type === "sale" && (
+                            <span className="flex w-fit items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
+                              <ArrowDownCircle size={12} /> بيع
+                            </span>
+                          )}
+                          {log.type === "stock_in" && (
+                            <span className="flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                              <ArrowUpCircle size={12} /> توريد
+                            </span>
+                          )}
+                          {log.type === "adjustment" && (
+                            <span className="flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                              <MinusCircle size={12} /> تعديل
+                            </span>
+                          )}
+                          {log.type === "stocktake" && (
+                            <span className="w-fit rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                              جرد
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">{log.quantityBefore}</td>
+                        <td
+                          className={`px-3 py-2 font-medium ${log.quantityChange < 0 ? "text-red-600" : "text-emerald-700"}`}
+                        >
+                          {log.quantityChange > 0 ? "+" : ""}
+                          {log.quantityChange}
+                        </td>
+                        <td className="px-3 py-2">{log.quantityAfter}</td>
+                        <td className="px-3 py-2 text-xs text-zinc-400">
+                          {log.note || "-"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {log.performedBy?.name || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-zinc-400">
+                          {new Date(log.createdAt).toLocaleString("ar-EG")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-            <div className="modal-actions">
+            <div className="mt-5 flex justify-end border-t border-zinc-100 pt-4">
               <button
-                className="btn btn-secondary"
+                className={btnSecondary}
                 onClick={() => setHistoryProduct(null)}
               >
                 إغلاق
